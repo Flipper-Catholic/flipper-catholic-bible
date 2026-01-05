@@ -1,0 +1,8 @@
+App(
+    appid="catholic_bible",
+    name="Catholic Bible",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="catholic_bible_app",
+    cdefines=["APP_CATHOLIC_BIBLE"],
+    requires=["gui"],
+)
