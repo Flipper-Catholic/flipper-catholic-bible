@@ -1,13 +1,95 @@
 #include <furi.h>
+#include <furi_hal.h>
+
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
+
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 
 #include "books_meta.h"
 
-/* ===================== App Struct ===================== */
+/* ============================================================================
+ * books_meta.h helpers (expects your now-working “real” books_meta.h)
+ * ==========================================================================*/
+
+static size_t cb_books_count(void) {
+#ifdef CATHOLIC_BIBLE_BOOKS_COUNT
+    return (size_t)CATHOLIC_BIBLE_BOOKS_COUNT;
+#elif defined(BOOKS_COUNT)
+    return (size_t)BOOKS_COUNT;
+#elif defined(BOOKS_META_COUNT)
+    return (size_t)BOOKS_META_COUNT;
+#elif defined(books_count)
+    return (size_t)books_count;
+#else
+    return 1;
+#endif
+}
+
+static const char* cb_book_name(size_t i) {
+#ifdef CATHOLIC_BIBLE_BOOKS_COUNT
+    return catholic_bible_book_names[i];
+#elif defined(BOOKS_COUNT)
+    extern const char* const book_names[];
+    return book_names[i];
+#elif defined(books_count)
+    extern const char* const books_names[];
+    return books_names[i];
+#else
+    (void)i;
+    return "Genesis (stub)";
+#endif
+}
+
+static uint16_t cb_book_chapters(size_t i) {
+#ifdef CATHOLIC_BIBLE_BOOKS_COUNT
+    return catholic_bible_book_chapter_counts[i];
+#elif defined(BOOKS_COUNT)
+    extern const uint16_t book_chapter_counts[];
+    return book_chapter_counts[i];
+#elif defined(books_count)
+    extern const uint16_t books_chapter_counts[];
+    return books_chapter_counts[i];
+#else
+    (void)i;
+    return 50;
+#endif
+}
+
+/* Verse count stub (lightweight, no drama).
+ * Next step later: replace with real per-chapter verse counts / index offsets. */
+static uint16_t cb_chapter_verses_stub(size_t book_index, uint16_t chapter_1based) {
+    (void)book_index;
+    (void)chapter_1based;
+    return 50;
+}
+
+/* ============================================================================
+ * App definitions
+ * ==========================================================================*/
+
+typedef enum {
+    CatholicBibleViewSubmenu = 0,
+    CatholicBibleViewWidget,
+} CatholicBibleViewId;
+
+typedef enum {
+    CatholicBibleSceneMenu = 0,
+    CatholicBibleSceneBrowseBooks,
+    CatholicBibleSceneBrowseChapters,
+    CatholicBibleSceneBrowseVerses,
+    CatholicBibleSceneSearch,
+    CatholicBibleSceneAbout,
+    CatholicBibleSceneCount,
+} CatholicBibleSceneId;
+
+typedef enum {
+    MenuItemBrowse = 0,
+    MenuItemSearch,
+    MenuItemAbout,
+} MenuItemId;
 
 typedef struct {
     Gui* gui;
@@ -17,460 +99,367 @@ typedef struct {
     Submenu* submenu;
     Widget* widget;
 
-    uint32_t selected_book;
-    uint32_t selected_chapter;
-    uint32_t selected_verse;
+    // Browse state
+    size_t selected_book_index;
+    uint16_t selected_chapter; // 1-based
+    uint16_t selected_verse;   // 1-based
 } CatholicBibleApp;
 
-/* ===================== Views ===================== */
+/* ============================================================================
+ * Submenu callback -> Custom event
+ * ==========================================================================*/
 
-typedef enum {
-    CatholicBibleViewMenu = 0,
-    CatholicBibleViewSubmenu,
-    CatholicBibleViewWidget,
-} CatholicBibleViewId;
-
-/* ===================== Scenes ===================== */
-
-typedef enum {
-    CatholicBibleSceneMenu = 0,
-    CatholicBibleSceneBooks,     // Browse -> list of books
-    CatholicBibleSceneChapters,  // Book -> list of chapters (real counts)
-    CatholicBibleSceneVerses,    // Chapter -> list of verses (placeholder count for now)
-    CatholicBibleSceneVerse,     // Verse -> placeholder text screen
-    CatholicBibleSceneSearch,
-    CatholicBibleSceneAbout,
-    CatholicBibleSceneCount,
-} CatholicBibleSceneId;
-
-/* ===================== Menu Events ===================== */
-
-typedef enum {
-    MenuEventBrowse = 1,
-    MenuEventSearch,
-    MenuEventAbout,
-} MenuEvent;
-
-/* ===================== Catholic Book List ===================== */
-
-static const char* catholic_books[] = {
-    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
-    "Joshua", "Judges", "Ruth",
-    "1 Samuel", "2 Samuel", "1 Kings", "2 Kings",
-    "1 Chronicles", "2 Chronicles",
-    "Ezra", "Nehemiah", "Tobit", "Judith", "Esther",
-    "1 Maccabees", "2 Maccabees",
-    "Job", "Psalms", "Proverbs", "Ecclesiastes",
-    "Song of Songs", "Wisdom", "Sirach",
-    "Isaiah", "Jeremiah", "Lamentations", "Baruch",
-    "Ezekiel", "Daniel",
-    "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah",
-    "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi",
-    "Matthew", "Mark", "Luke", "John", "Acts",
-    "Romans", "1 Corinthians", "2 Corinthians", "Galatians",
-    "Ephesians", "Philippians", "Colossians",
-    "1 Thessalonians", "2 Thessalonians",
-    "1 Timothy", "2 Timothy", "Titus", "Philemon",
-    "Hebrews", "James", "1 Peter", "2 Peter",
-    "1 John", "2 John", "3 John", "Jude",
-    "Revelation",
-};
-
-static const uint32_t catholic_books_count =
-    sizeof(catholic_books) / sizeof(catholic_books[0]);
-
-/* ===================== Helpers ===================== */
-
-static uint16_t get_chapter_count(uint32_t book_index) {
-    if(book_index >= catholic_books_count) return 1;
-
-    const uint32_t counts_len =
-        sizeof(catholic_book_chapter_counts) / sizeof(catholic_book_chapter_counts[0]);
-
-    if(book_index >= counts_len) return 1;
-
-    uint16_t c = catholic_book_chapter_counts[book_index];
-    return (c == 0) ? 1 : c;
-}
-
-/*
- * Placeholder verse count per chapter (for now).
- * Next step will replace this with real per-chapter metadata or packed text index.
- */
-static uint16_t get_verse_count_placeholder(uint32_t book_index, uint32_t chapter_index_1based) {
-    UNUSED(book_index);
-    UNUSED(chapter_index_1based);
-    return 30;
-}
-
-/* ===================== Forward Declarations ===================== */
-
-static void scene_menu_on_enter(void* context);
-static bool scene_menu_on_event(void* context, SceneManagerEvent event);
-static void scene_menu_on_exit(void* context);
-
-static void scene_books_on_enter(void* context);
-static bool scene_books_on_event(void* context, SceneManagerEvent event);
-static void scene_books_on_exit(void* context);
-
-static void scene_chapters_on_enter(void* context);
-static bool scene_chapters_on_event(void* context, SceneManagerEvent event);
-static void scene_chapters_on_exit(void* context);
-
-static void scene_verses_on_enter(void* context);
-static bool scene_verses_on_event(void* context, SceneManagerEvent event);
-static void scene_verses_on_exit(void* context);
-
-static void scene_verse_on_enter(void* context);
-static bool scene_verse_on_event(void* context, SceneManagerEvent event);
-static void scene_verse_on_exit(void* context);
-
-static void scene_search_on_enter(void* context);
-static bool scene_search_on_event(void* context, SceneManagerEvent event);
-static void scene_search_on_exit(void* context);
-
-static void scene_about_on_enter(void* context);
-static bool scene_about_on_event(void* context, SceneManagerEvent event);
-static void scene_about_on_exit(void* context);
-
-/* ===================== Scene Tables ===================== */
-
-static void (*const on_enter_handlers[])(void*) = {
-    scene_menu_on_enter,
-    scene_books_on_enter,
-    scene_chapters_on_enter,
-    scene_verses_on_enter,
-    scene_verse_on_enter,
-    scene_search_on_enter,
-    scene_about_on_enter,
-};
-
-static bool (*const on_event_handlers[])(void*, SceneManagerEvent) = {
-    scene_menu_on_event,
-    scene_books_on_event,
-    scene_chapters_on_event,
-    scene_verses_on_event,
-    scene_verse_on_event,
-    scene_search_on_event,
-    scene_about_on_event,
-};
-
-static void (*const on_exit_handlers[])(void*) = {
-    scene_menu_on_exit,
-    scene_books_on_exit,
-    scene_chapters_on_exit,
-    scene_verses_on_exit,
-    scene_verse_on_exit,
-    scene_search_on_exit,
-    scene_about_on_exit,
-};
-
-static const SceneManagerHandlers scene_handlers = {
-    .on_enter_handlers = on_enter_handlers,
-    .on_event_handlers = on_event_handlers,
-    .on_exit_handlers = on_exit_handlers,
-    .scene_num = CatholicBibleSceneCount,
-};
-
-/* ===================== Callbacks ===================== */
-
-static void submenu_callback(void* context, uint32_t index) {
+static void catholic_bible_submenu_callback(void* context, uint32_t index) {
     CatholicBibleApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-static bool navigation_callback(void* context) {
+/* ============================================================================
+ * Navigation (Back) callback (SDK 1.4.3 style)
+ * ==========================================================================*/
+
+static bool catholic_bible_navigation_callback(void* context) {
     CatholicBibleApp* app = context;
     return scene_manager_handle_back_event(app->scene_manager);
 }
 
-static bool custom_event_callback(void* context, uint32_t event) {
+static bool catholic_bible_custom_event_callback(void* context, uint32_t event) {
     CatholicBibleApp* app = context;
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-/* ===================== Scenes ===================== */
+/* ============================================================================
+ * Scene: Menu
+ * ==========================================================================*/
 
-static void scene_menu_on_enter(void* context) {
+static void catholic_bible_scene_menu_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Catholic Bible");
 
-    submenu_add_item(app->submenu, "Browse", MenuEventBrowse, submenu_callback, app);
-    submenu_add_item(app->submenu, "Search", MenuEventSearch, submenu_callback, app);
-    submenu_add_item(app->submenu, "About", MenuEventAbout, submenu_callback, app);
+    submenu_add_item(app->submenu, "Browse", MenuItemBrowse, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "Search", MenuItemSearch, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "About", MenuItemAbout, catholic_bible_submenu_callback, app);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewMenu);
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
 }
 
-static bool scene_menu_on_event(void* context, SceneManagerEvent event) {
+static bool catholic_bible_scene_menu_on_event(void* context, SceneManagerEvent event) {
     CatholicBibleApp* app = context;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MenuEventBrowse) {
-            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBooks);
+        switch(event.event) {
+        case MenuItemBrowse:
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBrowseBooks);
             return true;
-        }
-        if(event.event == MenuEventSearch) {
+        case MenuItemSearch:
             scene_manager_next_scene(app->scene_manager, CatholicBibleSceneSearch);
             return true;
-        }
-        if(event.event == MenuEventAbout) {
+        case MenuItemAbout:
             scene_manager_next_scene(app->scene_manager, CatholicBibleSceneAbout);
             return true;
+        default:
+            return false;
         }
     }
+
     return false;
 }
 
-static void scene_menu_on_exit(void* context) {
-    UNUSED(context);
+static void catholic_bible_scene_menu_on_exit(void* context) {
+    CatholicBibleApp* app = context;
+    submenu_reset(app->submenu);
 }
 
-/* ---- Books (Browse) ---- */
+/* ============================================================================
+ * Scene: Browse Books
+ * ==========================================================================*/
 
-static void scene_books_on_enter(void* context) {
+static void catholic_bible_scene_browse_books_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Books");
 
-    for(uint32_t i = 0; i < catholic_books_count; i++) {
-        submenu_add_item(app->submenu, catholic_books[i], i, submenu_callback, app);
+    const size_t n = cb_books_count();
+    for(size_t i = 0; i < n; i++) {
+        submenu_add_item(app->submenu, cb_book_name(i), (uint32_t)i, catholic_bible_submenu_callback, app);
     }
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
 }
 
-static bool scene_books_on_event(void* context, SceneManagerEvent event) {
+static bool catholic_bible_scene_browse_books_on_event(void* context, SceneManagerEvent event) {
     CatholicBibleApp* app = context;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        app->selected_book = event.event;
+        app->selected_book_index = (size_t)event.event;
         app->selected_chapter = 1;
         app->selected_verse = 1;
-        scene_manager_next_scene(app->scene_manager, CatholicBibleSceneChapters);
+        scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBrowseChapters);
         return true;
     }
+
     return false;
 }
 
-static void scene_books_on_exit(void* context) {
+static void catholic_bible_scene_browse_books_on_exit(void* context) {
     CatholicBibleApp* app = context;
     submenu_reset(app->submenu);
 }
 
-/* ---- Chapters (Real counts) ---- */
+/* ============================================================================
+ * Scene: Browse Chapters
+ * ==========================================================================*/
 
-static void scene_chapters_on_enter(void* context) {
+static void catholic_bible_scene_browse_chapters_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     submenu_reset(app->submenu);
 
-    if(app->selected_book >= catholic_books_count) app->selected_book = 0;
-    const char* book_name = catholic_books[app->selected_book];
-    submenu_set_header(app->submenu, book_name);
+    const char* book = cb_book_name(app->selected_book_index);
+    submenu_set_header(app->submenu, book);
 
-    uint16_t chapter_count = get_chapter_count(app->selected_book);
+    const uint16_t chapters = cb_book_chapters(app->selected_book_index);
 
-    char label[24];
-    for(uint32_t ch = 1; ch <= chapter_count; ch++) {
-        snprintf(label, sizeof(label), "Chapter %lu", (unsigned long)ch);
-        submenu_add_item(app->submenu, label, ch, submenu_callback, app);
+    // Keep it sane while still scaffolding UX; paging can come later.
+    const uint16_t max_list = (chapters > 80) ? 80 : chapters;
+
+    for(uint16_t c = 1; c <= max_list; c++) {
+        char label[24];
+        snprintf(label, sizeof(label), "Chapter %u", (unsigned)c);
+        submenu_add_item(app->submenu, label, (uint32_t)c, catholic_bible_submenu_callback, app);
     }
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
 }
 
-static bool scene_chapters_on_event(void* context, SceneManagerEvent event) {
+static bool catholic_bible_scene_browse_chapters_on_event(void* context, SceneManagerEvent event) {
     CatholicBibleApp* app = context;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        uint32_t ch = event.event;
-        if(ch < 1) ch = 1;
-        app->selected_chapter = ch;
+        app->selected_chapter = (uint16_t)event.event;
         app->selected_verse = 1;
-        scene_manager_next_scene(app->scene_manager, CatholicBibleSceneVerses);
+        scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBrowseVerses);
         return true;
     }
+
     return false;
 }
 
-static void scene_chapters_on_exit(void* context) {
+static void catholic_bible_scene_browse_chapters_on_exit(void* context) {
     CatholicBibleApp* app = context;
     submenu_reset(app->submenu);
 }
 
-/* ---- Verses (Placeholder list) ---- */
+/* ============================================================================
+ * Scene: Browse Verses (NEW scaffold)
+ * ==========================================================================*/
 
-static void scene_verses_on_enter(void* context) {
+static void catholic_bible_scene_browse_verses_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     submenu_reset(app->submenu);
 
-    if(app->selected_book >= catholic_books_count) app->selected_book = 0;
-    const char* book_name = catholic_books[app->selected_book];
+    // Header: "Book — Ch X"
+    const char* book = cb_book_name(app->selected_book_index);
+    char header[32];
+    snprintf(header, sizeof(header), "Ch %u", (unsigned)app->selected_chapter);
 
-    char header[48];
-    snprintf(
-        header,
-        sizeof(header),
-        "%s %lu",
-        book_name,
-        (unsigned long)app->selected_chapter);
-    submenu_set_header(app->submenu, header);
+    // Submenu header only supports one line; keep it simple:
+    // Show book name; verse list indicates chapter.
+    submenu_set_header(app->submenu, book);
 
-    uint16_t verse_count = get_verse_count_placeholder(app->selected_book, app->selected_chapter);
+    const uint16_t verses = cb_chapter_verses_stub(app->selected_book_index, app->selected_chapter);
 
-    char label[24];
-    for(uint32_t v = 1; v <= verse_count; v++) {
-        snprintf(label, sizeof(label), "Verse %lu", (unsigned long)v);
-        submenu_add_item(app->submenu, label, v, submenu_callback, app);
+    // Also keep it sane; paging later.
+    const uint16_t max_list = (verses > 80) ? 80 : verses;
+
+    // Insert a “chapter label” item at top using a disabled-like pattern? (not supported)
+    // Instead, first verse item can carry context.
+    for(uint16_t v = 1; v <= max_list; v++) {
+        char label[24];
+        if(v == 1) {
+            // Put the chapter context into the first label.
+            snprintf(label, sizeof(label), "%s %u:%u", "Verse", (unsigned)app->selected_chapter, (unsigned)v);
+        } else {
+            snprintf(label, sizeof(label), "Verse %u", (unsigned)v);
+        }
+        submenu_add_item(app->submenu, label, (uint32_t)v, catholic_bible_submenu_callback, app);
     }
+
+    (void)header; // reserved for later when we add a better header/paging UI
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
 }
 
-static bool scene_verses_on_event(void* context, SceneManagerEvent event) {
+static bool catholic_bible_scene_browse_verses_on_event(void* context, SceneManagerEvent event) {
     CatholicBibleApp* app = context;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        uint32_t v = event.event;
-        if(v < 1) v = 1;
-        app->selected_verse = v;
-        scene_manager_next_scene(app->scene_manager, CatholicBibleSceneVerse);
+        app->selected_verse = (uint16_t)event.event;
+
+        // Confirmation scaffold on Widget view (next step: Reader scene with actual text)
+        widget_reset(app->widget);
+
+        const char* book = cb_book_name(app->selected_book_index);
+
+        char line1[64];
+        snprintf(line1, sizeof(line1), "%s", book);
+
+        char line2[32];
+        snprintf(line2, sizeof(line2), "Ch %u : Verse %u",
+                 (unsigned)app->selected_chapter, (unsigned)app->selected_verse);
+
+        widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, line1);
+        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary, line2);
+        widget_add_string_element(app->widget, 4, 54, AlignLeft, AlignTop, FontSecondary,
+                                  "Reader text next.");
+
+        view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
         return true;
     }
+
     return false;
 }
 
-static void scene_verses_on_exit(void* context) {
+static void catholic_bible_scene_browse_verses_on_exit(void* context) {
     CatholicBibleApp* app = context;
     submenu_reset(app->submenu);
+    widget_reset(app->widget);
 }
 
-/* ---- Verse Screen (Placeholder text) ---- */
+/* ============================================================================
+ * Scene: Search (placeholder)
+ * ==========================================================================*/
 
-static void scene_verse_on_enter(void* context) {
+static void catholic_bible_scene_search_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     widget_reset(app->widget);
-
-    if(app->selected_book >= catholic_books_count) app->selected_book = 0;
-    const char* book_name = catholic_books[app->selected_book];
-
-    char line1[64];
-    snprintf(
-        line1,
-        sizeof(line1),
-        "%s %lu:%lu",
-        book_name,
-        (unsigned long)app->selected_chapter,
-        (unsigned long)app->selected_verse);
-
-    widget_add_string_element(app->widget, 5, 10, AlignLeft, AlignTop, FontPrimary, line1);
-    widget_add_string_element(
-        app->widget,
-        5,
-        30,
-        AlignLeft,
-        AlignTop,
-        FontSecondary,
-        "Verse text coming next");
+    widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "Search");
+    widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
+                              "Scaffold only.");
+    widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
+                              "Next: input + index.");
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
 }
 
-static bool scene_verse_on_event(void* context, SceneManagerEvent event) {
-    UNUSED(context);
-    UNUSED(event);
+static bool catholic_bible_scene_search_on_event(void* context, SceneManagerEvent event) {
+    (void)context;
+    (void)event;
     return false;
 }
 
-static void scene_verse_on_exit(void* context) {
+static void catholic_bible_scene_search_on_exit(void* context) {
     CatholicBibleApp* app = context;
     widget_reset(app->widget);
 }
 
-/* ---- Search ---- */
+/* ============================================================================
+ * Scene: About (placeholder)
+ * ==========================================================================*/
 
-static void scene_search_on_enter(void* context) {
+static void catholic_bible_scene_about_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     widget_reset(app->widget);
-    widget_add_string_element(app->widget, 5, 10, AlignLeft, AlignTop, FontPrimary, "Search");
-    widget_add_string_element(app->widget, 5, 28, AlignLeft, AlignTop, FontSecondary, "Index TBD");
+    widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "About");
+    widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
+                              "Flipper Catholic Bible");
+    widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
+                              "Browse: Books->Ch->Verses");
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
 }
 
-static bool scene_search_on_event(void* context, SceneManagerEvent event) {
-    UNUSED(context);
-    UNUSED(event);
+static bool catholic_bible_scene_about_on_event(void* context, SceneManagerEvent event) {
+    (void)context;
+    (void)event;
     return false;
 }
 
-static void scene_search_on_exit(void* context) {
+static void catholic_bible_scene_about_on_exit(void* context) {
     CatholicBibleApp* app = context;
     widget_reset(app->widget);
 }
 
-/* ---- About ---- */
+/* ============================================================================
+ * Scene handlers table (SDK 1.4.3 compatible)
+ * ==========================================================================*/
 
-static void scene_about_on_enter(void* context) {
-    CatholicBibleApp* app = context;
+static void (*const catholic_bible_on_enter_handlers[])(void*) = {
+    catholic_bible_scene_menu_on_enter,
+    catholic_bible_scene_browse_books_on_enter,
+    catholic_bible_scene_browse_chapters_on_enter,
+    catholic_bible_scene_browse_verses_on_enter,
+    catholic_bible_scene_search_on_enter,
+    catholic_bible_scene_about_on_enter,
+};
 
-    widget_reset(app->widget);
-    widget_add_string_element(app->widget, 5, 10, AlignLeft, AlignTop, FontPrimary, "About");
-    widget_add_string_element(app->widget, 5, 28, AlignLeft, AlignTop, FontSecondary, "Catholic Bible (Flipper)");
+static bool (*const catholic_bible_on_event_handlers[])(void*, SceneManagerEvent) = {
+    catholic_bible_scene_menu_on_event,
+    catholic_bible_scene_browse_books_on_event,
+    catholic_bible_scene_browse_chapters_on_event,
+    catholic_bible_scene_browse_verses_on_event,
+    catholic_bible_scene_search_on_event,
+    catholic_bible_scene_about_on_event,
+};
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
-}
+static void (*const catholic_bible_on_exit_handlers[])(void*) = {
+    catholic_bible_scene_menu_on_exit,
+    catholic_bible_scene_browse_books_on_exit,
+    catholic_bible_scene_browse_chapters_on_exit,
+    catholic_bible_scene_browse_verses_on_exit,
+    catholic_bible_scene_search_on_exit,
+    catholic_bible_scene_about_on_exit,
+};
 
-static bool scene_about_on_event(void* context, SceneManagerEvent event) {
-    UNUSED(context);
-    UNUSED(event);
-    return false;
-}
+static const SceneManagerHandlers catholic_bible_scene_handlers = {
+    .on_enter_handlers = catholic_bible_on_enter_handlers,
+    .on_event_handlers = catholic_bible_on_event_handlers,
+    .on_exit_handlers = catholic_bible_on_exit_handlers,
+    .scene_num = CatholicBibleSceneCount,
+};
 
-static void scene_about_on_exit(void* context) {
-    CatholicBibleApp* app = context;
-    widget_reset(app->widget);
-}
+/* ============================================================================
+ * App lifecycle
+ * ==========================================================================*/
 
-/* ===================== App Entry ===================== */
-
-int32_t catholic_bible_app(void* p) {
-    UNUSED(p);
-
+static CatholicBibleApp* catholic_bible_app_alloc(void) {
     CatholicBibleApp* app = malloc(sizeof(CatholicBibleApp));
+    memset(app, 0, sizeof(CatholicBibleApp));
 
     app->gui = furi_record_open(RECORD_GUI);
+
     app->view_dispatcher = view_dispatcher_alloc();
-    app->scene_manager = scene_manager_alloc(&scene_handlers, app);
+    app->scene_manager = scene_manager_alloc(&catholic_bible_scene_handlers, app);
 
     app->submenu = submenu_alloc();
     app->widget = widget_alloc();
 
-    app->selected_book = 0;
-    app->selected_chapter = 1;
-    app->selected_verse = 1;
-
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_custom_event_callback(app->view_dispatcher, custom_event_callback);
-    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, navigation_callback);
+    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, catholic_bible_navigation_callback);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, catholic_bible_custom_event_callback);
 
-    view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewMenu, submenu_get_view(app->submenu));
+    // Attach to GUI (fullscreen)
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+
+    // Register views
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewSubmenu, submenu_get_view(app->submenu));
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewWidget, widget_get_view(app->widget));
 
-    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-
+    // Start at menu
     scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMenu);
-    view_dispatcher_run(app->view_dispatcher);
 
-    view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewMenu);
+    return app;
+}
+
+static void catholic_bible_app_free(CatholicBibleApp* app) {
+    furi_assert(app);
+
     view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewWidget);
 
@@ -481,7 +470,16 @@ int32_t catholic_bible_app(void* p) {
     view_dispatcher_free(app->view_dispatcher);
 
     furi_record_close(RECORD_GUI);
+
     free(app);
+}
+
+int32_t catholic_bible_app(void* p) {
+    (void)p;
+
+    CatholicBibleApp* app = catholic_bible_app_alloc();
+    view_dispatcher_run(app->view_dispatcher);
+    catholic_bible_app_free(app);
 
     return 0;
 }
