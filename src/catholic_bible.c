@@ -1,4 +1,13 @@
-#include <furi.h>
+static bool catholic_bible_navigation_callback(void* context) {
+    CatholicBibleApp* app = context;
+    view_dispatcher_stop(app->view_dispatcher);
+    return true;
+}
+static bool catholic_bible_navigation_callback(void* context) {
+    CatholicBibleApp* app = context;
+    view_dispatcher_stop(app->view_dispatcher);
+    return true;
+}#include <furi.h>
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
 #include <gui/modules/widget.h>
@@ -53,9 +62,16 @@ int32_t catholic_bible_app(void* p) {
     );
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_exit_callback(
         app->view_dispatcher,
-        catholic_bible_exit_callback
+    catholic_bible_exit_callback
+    );
+    view_dispatcher_set_navigation_event_callback(
+    app->view_dispatcher,
+    catholic_bible_navigation_callback
+    );
+    view_dispatcher_set_exit_callback(
+    app->view_dispatcher,
+    catholic_bible_exit_callback
     );
 
     Gui* gui = furi_record_open(RECORD_GUI);
