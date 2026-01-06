@@ -1,1 +1,51 @@
 .vscode/
+
+# macOS
+.DS_Store
+
+# VS Code / build artifacts
+.vscode/
+compile_commands.json
+
+# uFBT / build outputs
+dist/
+build/
+.ufbt/
+
+# macOS
+.DS_Store
+
+# VS Code / build artifacts
+.vscode/
+compile_commands.json
+
+# uFBT / build outputs
+dist/
+build/
+.ufbt/
+git status
+cat >> .gitignore <<'EOF'
+
+# macOS
+.DS_Store
+
+# VS Code / build artifacts
+.vscode/
+compile_commands.json
+
+# uFBT / build outputs
+dist/
+build/
+.ufbt/
+
+# macOS
+.DS_Store
+
+# VS Code / build artifacts
+.vscode/
+compile_commands.json
+
+# uFBT / build outputs
+dist/
+build/
+.ufbt/

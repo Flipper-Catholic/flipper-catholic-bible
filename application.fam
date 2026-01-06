@@ -1,0 +1,8 @@
+App(
+    appid="catholic_bible",
+    name="Catholic Bible",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="catholic_bible_app",
+    stack_size=4096,
+    icon="A_Book_14",
+)
