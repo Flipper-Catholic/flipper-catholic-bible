@@ -5,6 +5,8 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 
+#include "books_meta.h"
+
 /* ===================== App Struct ===================== */
 
 typedef struct {
@@ -32,7 +34,7 @@ typedef enum {
 typedef enum {
     CatholicBibleSceneMenu = 0,
     CatholicBibleSceneBooks,    // Browse -> list of books
-    CatholicBibleSceneChapters, // Book -> list of chapters (placeholder)
+    CatholicBibleSceneChapters, // Book -> list of chapters (real counts)
     CatholicBibleSceneChapter,  // Chapter -> placeholder screen
     CatholicBibleSceneSearch,
     CatholicBibleSceneAbout,
@@ -75,11 +77,19 @@ static const char* catholic_books[] = {
 static const uint32_t catholic_books_count =
     sizeof(catholic_books) / sizeof(catholic_books[0]);
 
-/*
- * Chapter counts vary across traditions/editions (especially for books with additions).
- * For now we scaffold navigation with a clearly-labeled placeholder list.
- */
-#define PLACEHOLDER_CHAPTER_COUNT 10
+/* ===================== Helpers ===================== */
+
+static uint16_t get_chapter_count(uint32_t book_index) {
+    if(book_index >= catholic_books_count) return 1;
+
+    const uint32_t counts_len =
+        sizeof(catholic_book_chapter_counts) / sizeof(catholic_book_chapter_counts[0]);
+
+    if(book_index >= counts_len) return 1;
+
+    uint16_t c = catholic_book_chapter_counts[book_index];
+    return (c == 0) ? 1 : c;
+}
 
 /* ===================== Forward Declarations ===================== */
 
@@ -231,20 +241,22 @@ static void scene_books_on_exit(void* context) {
     submenu_reset(app->submenu);
 }
 
-/* ---- Chapters (Placeholder scaffold) ---- */
+/* ---- Chapters (Real counts) ---- */
 
 static void scene_chapters_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     submenu_reset(app->submenu);
 
+    if(app->selected_book >= catholic_books_count) app->selected_book = 0;
     const char* book_name = catholic_books[app->selected_book];
     submenu_set_header(app->submenu, book_name);
 
-    // Placeholder chapters; clearly labeled so we don't lie about chapter counts yet.
-    char label[32];
-    for(uint32_t ch = 1; ch <= PLACEHOLDER_CHAPTER_COUNT; ch++) {
-        snprintf(label, sizeof(label), "Chapter %lu (ph)", (unsigned long)ch);
+    uint16_t chapter_count = get_chapter_count(app->selected_book);
+
+    char label[24];
+    for(uint32_t ch = 1; ch <= chapter_count; ch++) {
+        snprintf(label, sizeof(label), "Chapter %lu", (unsigned long)ch);
         submenu_add_item(app->submenu, label, ch, submenu_callback, app);
     }
 
@@ -269,18 +281,19 @@ static void scene_chapters_on_exit(void* context) {
     submenu_reset(app->submenu);
 }
 
-/* ---- Chapter Screen (Placeholder) ---- */
+/* ---- Chapter Screen (Still placeholder verses) ---- */
 
 static void scene_chapter_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     widget_reset(app->widget);
 
+    if(app->selected_book >= catholic_books_count) app->selected_book = 0;
     const char* book_name = catholic_books[app->selected_book];
 
     widget_add_string_element(app->widget, 5, 10, AlignLeft, AlignTop, FontPrimary, book_name);
 
-    char line[32];
+    char line[24];
     snprintf(line, sizeof(line), "Chapter %lu", (unsigned long)app->selected_chapter);
     widget_add_string_element(app->widget, 5, 28, AlignLeft, AlignTop, FontSecondary, line);
 
