@@ -10,6 +10,22 @@
 
 #include "books_meta.h"
 
+#define CHAPTERS_PER_PAGE 40
+
+#define CH_EVT_PREV_PAGE     0xF0000001u
+#define CH_EVT_NEXT_PAGE     0xF0000002u
+
+#define CH_EVT_CHAPTER_BASE  0x00010000u
+#define VS_EVT_VERSE_BASE    0x00020000u
+
+#define CH_ENCODE_CHAPTER(c) (CH_EVT_CHAPTER_BASE | ((uint32_t)(c) & 0xFFFFu))
+#define CH_IS_CHAPTER(e)     (((e) & 0xFFFF0000u) == CH_EVT_CHAPTER_BASE)
+#define CH_DECODE_CHAPTER(e) ((uint16_t)((e) & 0xFFFFu))
+
+#define VS_ENCODE_VERSE(v)   (VS_EVT_VERSE_BASE | ((uint32_t)(v) & 0xFFFFu))
+#define VS_IS_VERSE(e)       (((e) & 0xFFFF0000u) == VS_EVT_VERSE_BASE)
+#define VS_DECODE_VERSE(e)   ((uint16_t)((e) & 0xFFFFu))
+
 /* ============================================================================
  * books_meta.h helpers (expects your now-working “real” books_meta.h)
  * ==========================================================================*/
@@ -103,6 +119,7 @@ typedef struct {
     size_t selected_book_index;
     uint16_t selected_chapter; // 1-based
     uint16_t selected_verse;   // 1-based
+    uint16_t chapter_page;
 } CatholicBibleApp;
 
 /* ============================================================================
@@ -195,6 +212,7 @@ static bool catholic_bible_scene_browse_books_on_event(void* context, SceneManag
 
     if(event.type == SceneManagerEventTypeCustom) {
         app->selected_book_index = (size_t)event.event;
+        app->chapter_page = 0;
         app->selected_chapter = 1;
         app->selected_verse = 1;
         scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBrowseChapters);
@@ -222,14 +240,35 @@ static void catholic_bible_scene_browse_chapters_on_enter(void* context) {
     submenu_set_header(app->submenu, book);
 
     const uint16_t chapters = cb_book_chapters(app->selected_book_index);
+    if(chapters == 0) {
+        submenu_add_item(app->submenu, "(No chapters)", 0, catholic_bible_submenu_callback, app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
+        return;
+    }
 
-    // Keep it sane while still scaffolding UX; paging can come later.
-    const uint16_t max_list = (chapters > 80) ? 80 : chapters;
+    const uint16_t per_page = CHAPTERS_PER_PAGE;
+    const uint16_t page_count = (chapters + per_page - 1) / per_page;
 
-    for(uint16_t c = 1; c <= max_list; c++) {
+    if(app->chapter_page >= page_count) app->chapter_page = (page_count ? (page_count - 1) : 0);
+
+    const uint16_t start = (uint16_t)(app->chapter_page * per_page + 1);
+    uint16_t end = (uint16_t)(start + per_page - 1);
+    if(end > chapters) end = chapters;
+
+    // Prev page (if available)
+    if(app->chapter_page > 0) {
+        submenu_add_item(app->submenu, "< Prev", CH_EVT_PREV_PAGE, catholic_bible_submenu_callback, app);    }
+
+    // Chapter items
+    for(uint16_t c = start; c <= end; c++) {
         char label[24];
         snprintf(label, sizeof(label), "Chapter %u", (unsigned)c);
-        submenu_add_item(app->submenu, label, (uint32_t)c, catholic_bible_submenu_callback, app);
+        submenu_add_item(app->submenu, label, CH_ENCODE_CHAPTER(c), catholic_bible_submenu_callback, app);
+    }
+
+    // Next page (if available)
+    if(app->chapter_page + 1 < page_count) {
+        submenu_add_item(app->submenu, "Next >", CH_EVT_NEXT_PAGE, catholic_bible_submenu_callback, app);
     }
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
@@ -238,8 +277,24 @@ static void catholic_bible_scene_browse_chapters_on_enter(void* context) {
 static bool catholic_bible_scene_browse_chapters_on_event(void* context, SceneManagerEvent event) {
     CatholicBibleApp* app = context;
 
-    if(event.type == SceneManagerEventTypeCustom) {
-        app->selected_chapter = (uint16_t)event.event;
+    if(event.type != SceneManagerEventTypeCustom) return false;
+
+    const uint32_t e = event.event;
+
+    if(e == CH_EVT_PREV_PAGE) {
+        if(app->chapter_page > 0) app->chapter_page--;
+        scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBrowseChapters);
+        return true;
+    }
+
+    if(e == CH_EVT_NEXT_PAGE) {
+        app->chapter_page++;
+        scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBrowseChapters);
+        return true;
+    }
+
+    if(CH_IS_CHAPTER(e)) {
+        app->selected_chapter = CH_DECODE_CHAPTER(e);
         app->selected_verse = 1;
         scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBrowseVerses);
         return true;
@@ -252,6 +307,7 @@ static void catholic_bible_scene_browse_chapters_on_exit(void* context) {
     CatholicBibleApp* app = context;
     submenu_reset(app->submenu);
 }
+
 
 /* ============================================================================
  * Scene: Browse Verses (NEW scaffold)
@@ -286,7 +342,7 @@ static void catholic_bible_scene_browse_verses_on_enter(void* context) {
         } else {
             snprintf(label, sizeof(label), "Verse %u", (unsigned)v);
         }
-        submenu_add_item(app->submenu, label, (uint32_t)v, catholic_bible_submenu_callback, app);
+        submenu_add_item(app->submenu, label, VS_ENCODE_VERSE(v), catholic_bible_submenu_callback, app);
     }
 
     (void)header; // reserved for later when we add a better header/paging UI
