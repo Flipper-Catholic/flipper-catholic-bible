@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "books_meta.h"
+#include "storage_adapter.h"
 
 #define CHAPTERS_PER_PAGE 40
 
@@ -126,8 +127,20 @@ static const char* const genesis1_verses[GENESIS_1_VERSE_COUNT] = {
     "And God saw all the things that he had made, and they were very good. And the evening and morning were the sixth day."
 };
 
-/* Verse count lookup - Phase 1.3: Returns real verse counts from books_meta */
-static uint16_t cb_chapter_verses(size_t book_index, uint16_t chapter_1based) {
+/* Verse count lookup - Phase 2.3: Uses storage adapter with fallback to hardcoded */
+static uint16_t cb_chapter_verses(CatholicBibleApp* app, size_t book_index, uint16_t chapter_1based) {
+    if(!app) return 50; // Default fallback
+    
+    // Try storage adapter first (Phase 2.2)
+    if(storage_adapter_assets_available(&app->storage)) {
+        uint16_t count = storage_adapter_get_verse_count(&app->storage, book_index, chapter_1based);
+        if(count > 0) {
+            return count;
+        }
+        // Fall through to hardcoded if storage fails
+    }
+    
+    // Fallback to hardcoded data (Phase 1.3)
     // Bounds checking
     if(book_index >= CATHOLIC_BIBLE_BOOKS_COUNT) return 50; // Default fallback
     if(chapter_1based < 1 || chapter_1based > MAX_CHAPTERS_PER_BOOK) return 50;
@@ -143,8 +156,36 @@ static uint16_t cb_chapter_verses(size_t book_index, uint16_t chapter_1based) {
     return verse_count;
 }
 
-/* Verse text lookup - Phase 1.2: Returns actual verses for Genesis 1, placeholder for others */
-static const char* cb_get_verse_text(size_t book_index, uint16_t chapter, uint16_t verse) {
+/* Verse text lookup - Phase 2.3: Uses storage adapter with fallback to hardcoded */
+static const char* cb_get_verse_text(CatholicBibleApp* app, size_t book_index, uint16_t chapter, uint16_t verse) {
+    if(!app) return "(Error: app is NULL)";
+    
+    // Try storage adapter first (Phase 2.2)
+    if(storage_adapter_assets_available(&app->storage)) {
+        // Allocate buffer if needed
+        if(!app->current_verse_buffer) {
+            app->current_verse_buffer = malloc(512); // Reasonable max verse length
+            if(!app->current_verse_buffer) {
+                return "(Error: failed to allocate buffer)";
+            }
+        }
+        
+        size_t bytes_read = storage_adapter_get_verse_text(
+            &app->storage,
+            book_index,
+            chapter,
+            verse,
+            app->current_verse_buffer,
+            512
+        );
+        
+        if(bytes_read > 0) {
+            return app->current_verse_buffer;
+        }
+        // Fall through to hardcoded if storage fails
+    }
+    
+    // Fallback to hardcoded text (Phase 1.2)
     // Genesis (book_index 0), Chapter 1
     if(book_index == 0 && chapter == 1) {
         if(verse >= 1 && verse <= GENESIS_1_VERSE_COUNT) {
@@ -152,8 +193,8 @@ static const char* cb_get_verse_text(size_t book_index, uint16_t chapter, uint16
         }
     }
 
-    // Placeholder for other books/chapters (to be implemented in Phase 2)
-    return "(Verse text not yet available. Coming in Phase 2.)";
+    // Placeholder for other books/chapters
+    return "(Verse text not yet available. Add Bible assets to SD card.)";
 }
 
 /* ============================================================================
@@ -204,6 +245,10 @@ typedef struct {
     // Reader view state
     int32_t scroll_offset; // Scroll position (pixels)
     const char* current_verse_text; // Current verse text being displayed
+    char* current_verse_buffer; // Buffer for SD card-loaded verse text
+    
+    // Storage adapter (Phase 2.2)
+    StorageAdapter storage;
 } CatholicBibleApp;
 
 /* ============================================================================
@@ -411,7 +456,7 @@ static void catholic_bible_scene_browse_verses_on_enter(void* context) {
     // Show book name; verse list indicates chapter.
     submenu_set_header(app->submenu, book);
 
-    const uint16_t verses = cb_chapter_verses(app->selected_book_index, app->selected_chapter);
+    const uint16_t verses = cb_chapter_verses(app, app->selected_book_index, app->selected_chapter);
 
     // Also keep it sane; paging later.
     const uint16_t max_list = (verses > 80) ? 80 : verses;
@@ -618,6 +663,7 @@ static void catholic_bible_scene_reader_on_enter(void* context) {
 
     // Get verse text
     app->current_verse_text = cb_get_verse_text(
+        app,
         app->selected_book_index,
         app->selected_chapter,
         app->selected_verse
@@ -641,7 +687,7 @@ static bool catholic_bible_scene_reader_on_event(void* context, SceneManagerEven
     CatholicBibleApp* app = context;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        uint16_t max_verses = cb_chapter_verses(app->selected_book_index, app->selected_chapter);
+        uint16_t max_verses = cb_chapter_verses(app, app->selected_book_index, app->selected_chapter);
         if(max_verses == 0) max_verses = 1;
 
         if(event.event == READER_EVT_PREV_VERSE) {
@@ -843,6 +889,9 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
     
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewReader, app->reader_view);
 
+    // Initialize storage adapter (Phase 2.2)
+    storage_adapter_init(&app->storage);
+
     // Start at menu
     scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMenu);
 
@@ -867,6 +916,15 @@ static void catholic_bible_app_free(CatholicBibleApp* app) {
     
     if(app->reader_view) {
         view_free(app->reader_view);
+    }
+    
+    // Free storage adapter (Phase 2.2)
+    storage_adapter_free(&app->storage);
+    
+    // Free verse buffer
+    if(app->current_verse_buffer) {
+        free(app->current_verse_buffer);
+        app->current_verse_buffer = NULL;
     }
 
     scene_manager_free(app->scene_manager);
