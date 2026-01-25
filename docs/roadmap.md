@@ -14,14 +14,19 @@ This roadmap maps the features described in the documentation to implementation 
 - ✅ Chapter pagination (40 chapters per page)
 - ✅ Placeholder scenes for Search and About
 - ✅ Event encoding/decoding for chapters and verses
+- ✅ MIT License file
+- ✅ Comprehensive documentation (6 docs in `/docs`)
 
-### Known Limitations
-- ⚠️ Verse selection shows placeholder widget ("Reader text next.")
-- ⚠️ No actual Bible text loading or display
-- ⚠️ Verse counts use stub function (defaults to 50 per chapter)
+### Known Limitations & Critical Issues
+- 🔴 **CRITICAL BUG**: Reader View draw callback not rendering (blank screen) - **P0 Blocker**
+- ⚠️ ~~Verse selection shows placeholder widget ("Reader text next.")~~ ✅ **Fixed in Phase 1.1**
+- ⚠️ ~~No actual Bible text loading or display~~ ✅ **Partially Fixed in Phase 1.2 (Genesis 1:1-31 only)**
+- ⚠️ Verse counts use stub function (defaults to 50 per chapter, except Genesis 1) - **P1**
+- ⚠️ Only 31 verses implemented (0.01% of full Bible) - **P0 Blocker**
 - ⚠️ Search scene is placeholder only
-- ⚠️ No SD card file access
-- ⚠️ No persistence (bookmarks, history)
+- ⚠️ No SD card file access (Phase 2 not started)
+- ⚠️ No persistence (bookmarks, history) - Phase 4 not started
+- ⚠️ No error handling for missing SD card or corrupt files
 
 ---
 
@@ -30,25 +35,34 @@ This roadmap maps the features described in the documentation to implementation 
 **Goal**: Enable reading actual Bible verses on the device.
 
 ### 1.1 Reader View Implementation
-- [ ] Add TextBox view to display verse text
-- [ ] Implement Reader scene with text rendering
-- [ ] Add navigation between verses (Left/Right arrow keys)
-- [ ] Handle text wrapping for long verses
-- [ ] Add verse context display (Book Name, Chapter:Verse)
+- [x] Add custom View with draw callback (replaced TextBox approach)
+- [x] Implement Reader scene structure
+- [x] Add navigation between verses (Left/Right arrow keys)
+- [x] Add scrolling support (Up/Down arrow keys)
+- [x] Add verse context display (Book Name, Chapter:Verse)
+- [x] Input handling for navigation and scrolling
+- 🔴 **CRITICAL BUG**: View draw callback not rendering (blank screen) - **P0 Blocker**
 
 **Dependencies**: None  
 **Priority**: Critical (blocking all other features)  
-**Estimated Complexity**: Medium
+**Estimated Complexity**: High (Custom view implementation)
+
+**Status**: Implementation complete but non-functional due to rendering bug. Draw callback may not be invoked or View setup is incorrect. Needs debugging.
+
+**Note**: Switched from TextBox to custom View for better control over scrolling and rendering. Current implementation has draw callback that should render header, separator, and verse text, but screen remains blank.
 
 ### 1.2 Basic Text Loading
-- [ ] Create simple in-memory verse data structure
-- [ ] Implement hardcoded sample verses (e.g., Genesis 1:1-31)
-- [ ] Integrate sample text with Reader view
-- [ ] Replace placeholder verse selection with Reader navigation
+- [x] Create simple in-memory verse data structure
+- [x] Implement hardcoded sample verses (Genesis 1:1-31)
+- [x] Integrate sample text with Reader view
+- [x] Replace placeholder verse selection with Reader navigation
+- ⚠️ **Limitation**: Only Genesis 1:1-31 implemented (31 verses out of ~31,000+ total)
 
 **Dependencies**: 1.1  
 **Priority**: Critical  
 **Estimated Complexity**: Low-Medium
+
+**Status**: Partially complete. Sample verses implemented but reader view rendering bug prevents display. Full Bible text requires Phase 2 (SD card asset loading).
 
 ### 1.3 Verse Count Data
 - [ ] Replace `cb_chapter_verses_stub()` with real verse counts
@@ -319,10 +333,11 @@ Phase 5 (Polish)
 
 ## Critical Blockers
 
-1. **Bible Text Source**: Need access to Douay-Rheims text in structured format (USFM/OSIS/JSON)
-2. **Asset Build Tool**: Must be completed before full Bible content is available
-3. **Reader View**: Blocks all reading-related features
-4. **Storage Adapter**: Blocks SD card-based content loading
+1. 🔴 **Reader View Rendering Bug** (P0): View draw callback not rendering - blocks all reading functionality
+2. 🔴 **Incomplete Text Content** (P0): Only 31 verses (Genesis 1:1-31) - 0.01% of full Bible
+3. **Bible Text Source**: Need access to Douay-Rheims text in structured format (USFM/OSIS/JSON)
+4. **Asset Build Tool**: Must be completed before full Bible content is available (Phase 2.1)
+5. **Storage Adapter**: Blocks SD card-based content loading (Phase 2.2)
 
 ---
 
