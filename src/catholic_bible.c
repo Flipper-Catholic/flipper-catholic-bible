@@ -17,6 +17,8 @@
 
 #include "books_meta.h"
 #include "storage_adapter.h"
+#include "bookmark_manager.h"
+#include "history_manager.h"
 
 #define CHAPTERS_PER_PAGE 40
 
@@ -215,6 +217,8 @@ typedef enum {
     CatholicBibleSceneBrowseVerses,
     CatholicBibleSceneReader,
     CatholicBibleSceneSearch,
+    CatholicBibleSceneBookmarks,
+    CatholicBibleSceneHistory,
     CatholicBibleSceneAbout,
     CatholicBibleSceneCount,
 } CatholicBibleSceneId;
@@ -222,6 +226,8 @@ typedef enum {
 typedef enum {
     MenuItemBrowse = 0,
     MenuItemSearch,
+    MenuItemBookmarks,
+    MenuItemHistory,
     MenuItemAbout,
 } MenuItemId;
 
@@ -249,6 +255,10 @@ typedef struct {
     
     // Storage adapter (Phase 2.2)
     StorageAdapter storage;
+    
+    // Bookmark and history managers (Phase 4)
+    BookmarkManager bookmarks;
+    HistoryManager history;
 } CatholicBibleApp;
 
 /* ============================================================================
@@ -286,6 +296,8 @@ static void catholic_bible_scene_menu_on_enter(void* context) {
 
     submenu_add_item(app->submenu, "Browse", MenuItemBrowse, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "Search", MenuItemSearch, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "Bookmarks", MenuItemBookmarks, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "History", MenuItemHistory, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "About", MenuItemAbout, catholic_bible_submenu_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
@@ -301,6 +313,12 @@ static bool catholic_bible_scene_menu_on_event(void* context, SceneManagerEvent 
             return true;
         case MenuItemSearch:
             scene_manager_next_scene(app->scene_manager, CatholicBibleSceneSearch);
+            return true;
+        case MenuItemBookmarks:
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBookmarks);
+            return true;
+        case MenuItemHistory:
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneHistory);
             return true;
         case MenuItemAbout:
             scene_manager_next_scene(app->scene_manager, CatholicBibleSceneAbout);
@@ -669,6 +687,22 @@ static void catholic_bible_scene_reader_on_enter(void* context) {
         app->selected_verse
     );
     
+    // Track in history (Phase 4.2)
+    history_manager_add_entry(
+        &app->history,
+        app->selected_book_index,
+        app->selected_chapter,
+        app->selected_verse
+    );
+    
+    // Update last-read verse (Phase 4.2)
+    history_manager_set_last_read(
+        &app->history,
+        app->selected_book_index,
+        app->selected_chapter,
+        app->selected_verse
+    );
+    
     // Reset scroll to top when entering new verse
     app->scroll_offset = 0;
 
@@ -773,6 +807,82 @@ static void catholic_bible_scene_about_on_exit(void* context) {
 }
 
 /* ============================================================================
+ * Scene: Bookmarks (Phase 4.3)
+ * ==========================================================================*/
+
+static void catholic_bible_scene_bookmarks_on_enter(void* context) {
+    CatholicBibleApp* app = context;
+    
+    widget_reset(app->widget);
+    widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "Bookmarks");
+    
+    size_t count = bookmark_manager_count(&app->bookmarks);
+    if(count == 0) {
+        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
+                                  "No bookmarks yet.");
+        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
+                                  "Press OK in reader to bookmark.");
+    } else {
+        char count_str[32];
+        snprintf(count_str, sizeof(count_str), "%zu bookmark(s)", count);
+        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary, count_str);
+        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
+                                  "Full list coming soon.");
+    }
+    
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
+}
+
+static bool catholic_bible_scene_bookmarks_on_event(void* context, SceneManagerEvent event) {
+    (void)context;
+    (void)event;
+    return false;
+}
+
+static void catholic_bible_scene_bookmarks_on_exit(void* context) {
+    CatholicBibleApp* app = context;
+    widget_reset(app->widget);
+}
+
+/* ============================================================================
+ * Scene: History (Phase 4.3)
+ * ==========================================================================*/
+
+static void catholic_bible_scene_history_on_enter(void* context) {
+    CatholicBibleApp* app = context;
+    
+    widget_reset(app->widget);
+    widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "History");
+    
+    size_t count = history_manager_count(&app->history);
+    if(count == 0) {
+        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
+                                  "No history yet.");
+        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
+                                  "Start reading to build history.");
+    } else {
+        char count_str[32];
+        snprintf(count_str, sizeof(count_str), "%zu recent verse(s)", count);
+        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary, count_str);
+        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
+                                  "Full list coming soon.");
+    }
+    
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
+}
+
+static bool catholic_bible_scene_history_on_event(void* context, SceneManagerEvent event) {
+    (void)context;
+    (void)event;
+    return false;
+}
+
+static void catholic_bible_scene_history_on_exit(void* context) {
+    CatholicBibleApp* app = context;
+    widget_reset(app->widget);
+}
+
+/* ============================================================================
  * Scene handlers table (SDK 1.4.3 compatible)
  * ==========================================================================*/
 
@@ -783,6 +893,8 @@ static void (*const catholic_bible_on_enter_handlers[])(void*) = {
     catholic_bible_scene_browse_verses_on_enter,
     catholic_bible_scene_reader_on_enter,
     catholic_bible_scene_search_on_enter,
+    catholic_bible_scene_bookmarks_on_enter,
+    catholic_bible_scene_history_on_enter,
     catholic_bible_scene_about_on_enter,
 };
 
@@ -793,6 +905,8 @@ static bool (*const catholic_bible_on_event_handlers[])(void*, SceneManagerEvent
     catholic_bible_scene_browse_verses_on_event,
     catholic_bible_scene_reader_on_event,
     catholic_bible_scene_search_on_event,
+    catholic_bible_scene_bookmarks_on_event,
+    catholic_bible_scene_history_on_event,
     catholic_bible_scene_about_on_event,
 };
 
@@ -803,6 +917,8 @@ static void (*const catholic_bible_on_exit_handlers[])(void*) = {
     catholic_bible_scene_browse_verses_on_exit,
     catholic_bible_scene_reader_on_exit,
     catholic_bible_scene_search_on_exit,
+    catholic_bible_scene_bookmarks_on_exit,
+    catholic_bible_scene_history_on_exit,
     catholic_bible_scene_about_on_exit,
 };
 
@@ -891,6 +1007,10 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
 
     // Initialize storage adapter (Phase 2.2)
     storage_adapter_init(&app->storage);
+    
+    // Initialize bookmark and history managers (Phase 4)
+    bookmark_manager_init(&app->bookmarks);
+    history_manager_init(&app->history);
 
     // Start at menu
     scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMenu);
@@ -920,6 +1040,10 @@ static void catholic_bible_app_free(CatholicBibleApp* app) {
     
     // Free storage adapter (Phase 2.2)
     storage_adapter_free(&app->storage);
+    
+    // Free bookmark and history managers (Phase 4)
+    bookmark_manager_free(&app->bookmarks);
+    history_manager_free(&app->history);
     
     // Free verse buffer
     if(app->current_verse_buffer) {
