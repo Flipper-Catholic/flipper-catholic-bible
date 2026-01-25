@@ -37,6 +37,9 @@
 #define VS_DECODE_VERSE(e)   ((uint16_t)((e) & 0xFFFFu))
 
 #define READER_EVT_PREV_VERSE 0x91000001u
+
+/* Forward declaration - use struct keyword for incomplete type */
+struct CatholicBibleApp;
 #define READER_EVT_NEXT_VERSE 0x91000002u
 
 /* ============================================================================
@@ -95,7 +98,7 @@ static uint16_t cb_book_chapters(size_t i) {
 
 #define GENESIS_1_VERSE_COUNT 31
 
-static const char* const genesis1_verses[GENESIS_1_VERSE_COUNT] = {
+static const char* const genesis1_verses[GENESIS_1_VERSE_COUNT] __attribute__((used)) = {
     "In the beginning God created heaven, and earth.",
     "And the earth was void and empty, and darkness was upon the face of the deep; and the spirit of God moved over the waters.",
     "And God said: Be light made. And light was made.",
@@ -129,75 +132,6 @@ static const char* const genesis1_verses[GENESIS_1_VERSE_COUNT] = {
     "And God saw all the things that he had made, and they were very good. And the evening and morning were the sixth day."
 };
 
-/* Verse count lookup - Phase 2.3: Uses storage adapter with fallback to hardcoded */
-static uint16_t cb_chapter_verses(CatholicBibleApp* app, size_t book_index, uint16_t chapter_1based) {
-    if(!app) return 50; // Default fallback
-    
-    // Try storage adapter first (Phase 2.2)
-    if(storage_adapter_assets_available(&app->storage)) {
-        uint16_t count = storage_adapter_get_verse_count(&app->storage, book_index, chapter_1based);
-        if(count > 0) {
-            return count;
-        }
-        // Fall through to hardcoded if storage fails
-    }
-    
-    // Fallback to hardcoded data (Phase 1.3)
-    // Bounds checking
-    if(book_index >= CATHOLIC_BIBLE_BOOKS_COUNT) return 50; // Default fallback
-    if(chapter_1based < 1 || chapter_1based > MAX_CHAPTERS_PER_BOOK) return 50;
-    
-    // Look up verse count (chapter is 1-based, array is 0-indexed)
-    uint16_t verse_count = catholic_bible_verse_counts[book_index][chapter_1based - 1];
-    
-    // If 0, means not yet implemented - use default placeholder
-    if(verse_count == 0) {
-        return 50; // Default placeholder for unimplemented books/chapters
-    }
-    
-    return verse_count;
-}
-
-/* Verse text lookup - Phase 2.3: Uses storage adapter with fallback to hardcoded */
-static const char* cb_get_verse_text(CatholicBibleApp* app, size_t book_index, uint16_t chapter, uint16_t verse) {
-    if(!app) return "(Error: app is NULL)";
-    
-    // Try storage adapter first (Phase 2.2)
-    if(storage_adapter_assets_available(&app->storage)) {
-        // Allocate buffer if needed
-        if(!app->current_verse_buffer) {
-            app->current_verse_buffer = malloc(512); // Reasonable max verse length
-            if(!app->current_verse_buffer) {
-                return "(Error: failed to allocate buffer)";
-            }
-        }
-        
-        size_t bytes_read = storage_adapter_get_verse_text(
-            &app->storage,
-            book_index,
-            chapter,
-            verse,
-            app->current_verse_buffer,
-            512
-        );
-        
-        if(bytes_read > 0) {
-            return app->current_verse_buffer;
-        }
-        // Fall through to hardcoded if storage fails
-    }
-    
-    // Fallback to hardcoded text (Phase 1.2)
-    // Genesis (book_index 0), Chapter 1
-    if(book_index == 0 && chapter == 1) {
-        if(verse >= 1 && verse <= GENESIS_1_VERSE_COUNT) {
-            return genesis1_verses[verse - 1]; // Convert 1-based to 0-based index
-        }
-    }
-
-    // Placeholder for other books/chapters
-    return "(Verse text not yet available. Add Bible assets to SD card.)";
-}
 
 /* ============================================================================
  * App definitions
@@ -268,6 +202,76 @@ typedef struct {
     BookmarkManager bookmarks;
     HistoryManager history;
 } CatholicBibleApp;
+
+/* Verse count lookup - Phase 2.3: Uses storage adapter with fallback to hardcoded */
+static uint16_t cb_chapter_verses(CatholicBibleApp* app, size_t book_index, uint16_t chapter_1based) {
+    if(!app) return 50; // Default fallback
+    
+    // Try storage adapter first (Phase 2.2)
+    if(storage_adapter_assets_available(&app->storage)) {
+        uint16_t count = storage_adapter_get_verse_count(&app->storage, book_index, chapter_1based);
+        if(count > 0) {
+            return count;
+        }
+        // Fall through to hardcoded if storage fails
+    }
+    
+    // Fallback to hardcoded data (Phase 1.3)
+    // Bounds checking
+    if(book_index >= CATHOLIC_BIBLE_BOOKS_COUNT) return 50; // Default fallback
+    if(chapter_1based < 1 || chapter_1based > MAX_CHAPTERS_PER_BOOK) return 50;
+    
+    // Look up verse count (chapter is 1-based, array is 0-indexed)
+    uint16_t verse_count = catholic_bible_verse_counts[book_index][chapter_1based - 1];
+    
+    // If 0, means not yet implemented - use default placeholder
+    if(verse_count == 0) {
+        return 50; // Default placeholder for unimplemented books/chapters
+    }
+    
+    return verse_count;
+}
+
+/* Verse text lookup - Phase 2.3: Uses storage adapter with fallback to hardcoded */
+static const char* cb_get_verse_text(CatholicBibleApp* app, size_t book_index, uint16_t chapter, uint16_t verse) {
+    if(!app) return "(Error: app is NULL)";
+    
+    // Try storage adapter first (Phase 2.2)
+    if(storage_adapter_assets_available(&app->storage)) {
+        // Allocate buffer if needed
+        if(!app->current_verse_buffer) {
+            app->current_verse_buffer = malloc(512); // Reasonable max verse length
+            if(!app->current_verse_buffer) {
+                return "(Error: failed to allocate buffer)";
+            }
+        }
+        
+        size_t bytes_read = storage_adapter_get_verse_text(
+            &app->storage,
+            book_index,
+            chapter,
+            verse,
+            app->current_verse_buffer,
+            512
+        );
+        
+        if(bytes_read > 0) {
+            return app->current_verse_buffer;
+        }
+        // Fall through to hardcoded if storage fails
+    }
+    
+    // Fallback to hardcoded text (Phase 1.2)
+    // Genesis (book_index 0), Chapter 1
+    if(book_index == 0 && chapter == 1) {
+        if(verse >= 1 && verse <= GENESIS_1_VERSE_COUNT) {
+            return genesis1_verses[verse - 1]; // Convert 1-based to 0-based index
+        }
+    }
+
+    // Placeholder for other books/chapters
+    return "(Verse text not yet available. Add Bible assets to SD card.)";
+}
 
 /* ============================================================================
  * Submenu callback -> Custom event
@@ -652,11 +656,11 @@ static void reader_viewport_draw_callback(Canvas* canvas, void* context) {
     }
 }
 
-/* Reader viewport input callback - ViewPort version returns void */
-static void reader_viewport_input_callback(InputEvent* event, void* context) {
+/* Reader view input callback - View version returns bool */
+static bool reader_view_input_callback(InputEvent* event, void* context) {
     CatholicBibleApp* app = context;
     
-    if(!app || !event) return;
+    if(!app || !event) return false;
     
     if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
         if(event->key == InputKeyUp) {
@@ -666,14 +670,14 @@ static void reader_viewport_input_callback(InputEvent* event, void* context) {
                 if(app->scroll_offset < 0) app->scroll_offset = 0;
                 view_port_update(app->reader_viewport);
             }
-            return;
+            return true;
         }
         
         if(event->key == InputKeyDown) {
             // Scroll down
             app->scroll_offset += 10;
             view_port_update(app->reader_viewport);
-            return;
+            return true;
         }
         
         if(event->key == InputKeyLeft) {
@@ -681,7 +685,7 @@ static void reader_viewport_input_callback(InputEvent* event, void* context) {
             if(app->view_dispatcher) {
                 view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_PREV_VERSE);
             }
-            return;
+            return true;
         }
         
         if(event->key == InputKeyRight) {
@@ -689,9 +693,11 @@ static void reader_viewport_input_callback(InputEvent* event, void* context) {
             if(app->view_dispatcher) {
                 view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_NEXT_VERSE);
             }
-            return;
+            return true;
         }
     }
+    
+    return false;
 }
 
 /* ============================================================================
@@ -1228,17 +1234,17 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
     view_set_input_callback(text_box_view, catholic_bible_reader_textbox_input_callback);
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewTextBox, text_box_view);
 
-    // Create custom reader view using ViewPort (more reliable for custom drawing)
-    app->reader_viewport = view_port_alloc();
-    view_port_draw_callback_set(app->reader_viewport, reader_viewport_draw_callback, app);
-    view_port_input_callback_set(app->reader_viewport, reader_viewport_input_callback, app);
-    view_port_enabled_set(app->reader_viewport, true);
-    
-    // Wrap ViewPort in View for ViewDispatcher compatibility
+    // Create custom reader view using View directly
     app->reader_view = view_alloc();
-    view_set_view_port(app->reader_view, app->reader_viewport);
+    view_set_draw_callback(app->reader_view, reader_viewport_draw_callback);
+    view_set_input_callback(app->reader_view, reader_view_input_callback);
     view_set_context(app->reader_view, app);
     view_set_orientation(app->reader_view, ViewOrientationVertical);
+    
+    // Keep ViewPort for draw callback compatibility and updates
+    app->reader_viewport = view_port_alloc();
+    view_port_draw_callback_set(app->reader_viewport, reader_viewport_draw_callback, app);
+    view_port_enabled_set(app->reader_viewport, true);
     
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewReader, app->reader_view);
 
