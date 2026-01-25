@@ -43,3 +43,12 @@ const uint16_t catholic_bible_book_chapter_counts[CATHOLIC_BIBLE_BOOKS_COUNT] = 
     6,4,3,1,               // Pastoral + Philemon
     13,5,5,3,5,1,1,1,22    // Hebrews..Revelation
 };
+
+// Verse counts per chapter for each book
+// 0 = not yet implemented (will use default/placeholder)
+// Note: chapter is 1-based in usage, but array is 0-indexed (chapter_1based - 1)
+const uint16_t catholic_bible_verse_counts[CATHOLIC_BIBLE_BOOKS_COUNT][MAX_CHAPTERS_PER_BOOK] = {
+    // Genesis (book 0) - all 50 chapters (Douay-Rheims)
+    {31,25,24,26,32,22,24,22,29,32,32,20,18,24,21,16,27,33,38,18,34,24,20,67,34,35,46,22,35,43,55,32,20,31,29,43,36,30,23,23,57,38,34,34,28,34,31,22,33,26},
+    // All other books: remaining arrays are implicitly initialized to 0
+};

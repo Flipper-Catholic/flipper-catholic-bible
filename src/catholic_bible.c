@@ -126,17 +126,21 @@ static const char* const genesis1_verses[GENESIS_1_VERSE_COUNT] = {
     "And God saw all the things that he had made, and they were very good. And the evening and morning were the sixth day."
 };
 
-/* Verse count stub (lightweight, no drama).
- * Phase 1.2: Returns actual count for Genesis 1, placeholder for others
- * Phase 1.3: Will be replaced with real per-chapter verse counts */
-static uint16_t cb_chapter_verses_stub(size_t book_index, uint16_t chapter_1based) {
-    // Genesis (book_index 0), Chapter 1
-    if(book_index == 0 && chapter_1based == 1) {
-        return GENESIS_1_VERSE_COUNT; // 31 verses
+/* Verse count lookup - Phase 1.3: Returns real verse counts from books_meta */
+static uint16_t cb_chapter_verses(size_t book_index, uint16_t chapter_1based) {
+    // Bounds checking
+    if(book_index >= CATHOLIC_BIBLE_BOOKS_COUNT) return 50; // Default fallback
+    if(chapter_1based < 1 || chapter_1based > MAX_CHAPTERS_PER_BOOK) return 50;
+    
+    // Look up verse count (chapter is 1-based, array is 0-indexed)
+    uint16_t verse_count = catholic_bible_verse_counts[book_index][chapter_1based - 1];
+    
+    // If 0, means not yet implemented - use default placeholder
+    if(verse_count == 0) {
+        return 50; // Default placeholder for unimplemented books/chapters
     }
-
-    // Placeholder for other books/chapters (default to 50, will be replaced in Phase 1.3)
-    return 50;
+    
+    return verse_count;
 }
 
 /* Verse text lookup - Phase 1.2: Returns actual verses for Genesis 1, placeholder for others */
@@ -188,7 +192,8 @@ typedef struct {
     Submenu* submenu;
     Widget* widget;
     TextBox* text_box;
-    View* reader_view; // Custom reader view for scrolling
+    ViewPort* reader_viewport; // ViewPort for custom drawing
+    View* reader_view; // View wrapper for ViewDispatcher
 
     // Browse state
     size_t selected_book_index;
@@ -406,7 +411,7 @@ static void catholic_bible_scene_browse_verses_on_enter(void* context) {
     // Show book name; verse list indicates chapter.
     submenu_set_header(app->submenu, book);
 
-    const uint16_t verses = cb_chapter_verses_stub(app->selected_book_index, app->selected_chapter);
+    const uint16_t verses = cb_chapter_verses(app->selected_book_index, app->selected_chapter);
 
     // Also keep it sane; paging later.
     const uint16_t max_list = (verses > 80) ? 80 : verses;
@@ -523,11 +528,11 @@ static void reader_draw_text(Canvas* canvas, const char* text, int32_t scroll_y,
     }
 }
 
-/* Reader view draw callback */
-static void reader_view_draw_callback(Canvas* canvas, void* context) {
+/* Reader viewport draw callback */
+static void reader_viewport_draw_callback(Canvas* canvas, void* context) {
     CatholicBibleApp* app = context;
     
-    if(!app) return;
+    if(!app || !canvas) return;
     
     canvas_clear(canvas);
     canvas_set_font(canvas, FontSecondary);
@@ -545,14 +550,10 @@ static void reader_view_draw_callback(Canvas* canvas, void* context) {
     // Draw separator line
     canvas_draw_line(canvas, 0, READER_HEADER_HEIGHT - 2, 128, READER_HEADER_HEIGHT - 2);
     
-    // Draw verse text - simplified for debugging
+    // Draw verse text
     canvas_set_font(canvas, FontKeyboard);
     
-    // TEST: Always draw something to verify callback works
-    canvas_draw_str(canvas, READER_LEFT_MARGIN, READER_HEADER_HEIGHT + 8, "TEST");
-    
     if(app->current_verse_text && strlen(app->current_verse_text) > 0) {
-        // Simple direct text drawing for now (no wrapping)
         uint8_t viewport_width = 128;
         uint8_t viewport_height = 64 - READER_HEADER_HEIGHT;
         reader_draw_text(canvas, app->current_verse_text, app->scroll_offset, 
@@ -564,11 +565,11 @@ static void reader_view_draw_callback(Canvas* canvas, void* context) {
     }
 }
 
-/* Reader view input callback - View version returns bool */
-static bool reader_view_input_callback(InputEvent* event, void* context) {
+/* Reader viewport input callback - ViewPort version returns void */
+static void reader_viewport_input_callback(InputEvent* event, void* context) {
     CatholicBibleApp* app = context;
     
-    if(!app || !event) return false;
+    if(!app || !event) return;
     
     if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
         if(event->key == InputKeyUp) {
@@ -576,16 +577,16 @@ static bool reader_view_input_callback(InputEvent* event, void* context) {
             if(app->scroll_offset > 0) {
                 app->scroll_offset -= 10;
                 if(app->scroll_offset < 0) app->scroll_offset = 0;
-                // View will redraw automatically
+                view_port_update(app->reader_viewport);
             }
-            return true;
+            return;
         }
         
         if(event->key == InputKeyDown) {
             // Scroll down
             app->scroll_offset += 10;
-            // View will redraw automatically
-            return true;
+            view_port_update(app->reader_viewport);
+            return;
         }
         
         if(event->key == InputKeyLeft) {
@@ -593,7 +594,7 @@ static bool reader_view_input_callback(InputEvent* event, void* context) {
             if(app->view_dispatcher) {
                 view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_PREV_VERSE);
             }
-            return true;
+            return;
         }
         
         if(event->key == InputKeyRight) {
@@ -601,11 +602,9 @@ static bool reader_view_input_callback(InputEvent* event, void* context) {
             if(app->view_dispatcher) {
                 view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_NEXT_VERSE);
             }
-            return true;
+            return;
         }
     }
-    
-    return false;
 }
 
 /* ============================================================================
@@ -632,14 +631,17 @@ static void catholic_bible_scene_reader_on_enter(void* context) {
         view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewReader);
     }
     
-    // View will redraw automatically when switched to
+    // Force ViewPort update to redraw with new verse text
+    if(app->reader_viewport) {
+        view_port_update(app->reader_viewport);
+    }
 }
 
 static bool catholic_bible_scene_reader_on_event(void* context, SceneManagerEvent event) {
     CatholicBibleApp* app = context;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        uint16_t max_verses = cb_chapter_verses_stub(app->selected_book_index, app->selected_chapter);
+        uint16_t max_verses = cb_chapter_verses(app->selected_book_index, app->selected_chapter);
         if(max_verses == 0) max_verses = 1;
 
         if(event.event == READER_EVT_PREV_VERSE) {
@@ -789,7 +791,7 @@ static bool catholic_bible_reader_textbox_input_callback(InputEvent* event, void
     }
 
     // Let TextBox handle other inputs (Up/Down for scrolling)
-    // TODO: Verify TextBox scrolling works; may need custom reader view if not
+    // Note: Using custom ViewPort-based reader view for proper scrolling control
     return false;
 }
 
@@ -827,13 +829,17 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
     view_set_input_callback(text_box_view, catholic_bible_reader_textbox_input_callback);
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewTextBox, text_box_view);
 
-    // Create custom reader view using View with callbacks
+    // Create custom reader view using ViewPort (more reliable for custom drawing)
+    app->reader_viewport = view_port_alloc();
+    view_port_draw_callback_set(app->reader_viewport, reader_viewport_draw_callback, app);
+    view_port_input_callback_set(app->reader_viewport, reader_viewport_input_callback, app);
+    view_port_enabled_set(app->reader_viewport, true);
+    
+    // Wrap ViewPort in View for ViewDispatcher compatibility
     app->reader_view = view_alloc();
-    view_set_orientation(app->reader_view, ViewOrientationVertical);
+    view_set_view_port(app->reader_view, app->reader_viewport);
     view_set_context(app->reader_view, app);
-    view_set_draw_callback(app->reader_view, reader_view_draw_callback);
-    view_set_input_callback(app->reader_view, reader_view_input_callback);
-    view_set_enabled(app->reader_view, true);
+    view_set_orientation(app->reader_view, ViewOrientationVertical);
     
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewReader, app->reader_view);
 
@@ -854,6 +860,10 @@ static void catholic_bible_app_free(CatholicBibleApp* app) {
     submenu_free(app->submenu);
     widget_free(app->widget);
     text_box_free(app->text_box);
+    
+    if(app->reader_viewport) {
+        view_port_free(app->reader_viewport);
+    }
     
     if(app->reader_view) {
         view_free(app->reader_view);
