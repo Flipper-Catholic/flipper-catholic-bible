@@ -1,7 +1,7 @@
 # Catholic Bible for Flipper Zero
 
-> ⚠️ **Early Development Status**  
-> This app is currently in active development. Core navigation works, but only Genesis 1:1-31 is available. Reader view has known issues. See [Status Report](STATUS_REPORT.md) for details.
+> ⚠️ **Development Status**  
+> Core features are implemented and ready for testing. Navigation, reading (Genesis 1:1-31), bookmarks, and history are functional. Full Bible content requires SD card assets. See [Status Report](STATUS_REPORT.md) for details.
 
 A fully offline Catholic Bible application for the Flipper Zero, featuring the complete Douay-Rheims Bible (full Catholic canon), verse-level navigation, bookmarks, history, and fast indexed search.
 
@@ -11,12 +11,13 @@ A fully offline Catholic Bible application for the Flipper Zero, featuring the c
 
 This app turns the Flipper Zero into a portable Scripture reader:
 
-- 📖 Full Catholic Bible (Douay-Rheims, public domain) - *Planned*
-- 🔍 Fast verse-level indexed search (offline) - *Planned*
+- 📖 Full Catholic Bible (Douay-Rheims, public domain) - *Infrastructure Ready*
+- 🔍 Fast verse-level indexed search (offline) - *Planned (Phase 3)*
 - 🧭 Book → Chapter → Verse navigation - ✅ **Implemented**
-- 🔖 Bookmarks and recent history - *Planned*
-- 💾 microSD-based content and updates - *Planned*
-- 📴 Fully offline, reverent, distraction-free - ✅ **Designed**
+- 🔖 Bookmarks and recent history - ✅ **Implemented**
+- 💾 microSD-based content and updates - ✅ **Infrastructure Ready**
+- 📴 Fully offline, reverent, distraction-free - ✅ **Implemented**
+- ✝️ Catholic Devotional Features - ✅ **UI Complete** (Missal, Rosary, Prayers, Confession)
 
 The design intentionally avoids commentary, notes, audio, or online features to keep focus on the text itself.
 
@@ -28,12 +29,17 @@ The design intentionally avoids commentary, notes, audio, or online features to 
 - **Navigation Structure**: Full menu system (Menu → Books → Chapters → Verses)
 - **Book Metadata**: All 73 Catholic canon books with chapter counts
 - **Chapter Pagination**: Browse chapters with 40 chapters per page
-- **Basic Reader View**: Scene structure and input handling (currently has rendering bug)
+- **Reader View**: ViewPort-based rendering with scrolling and navigation
 - **Sample Content**: Genesis 1:1-31 hardcoded for testing
+- **Verse Counts**: Accurate counts for Genesis (all 50 chapters)
+- **SD Card Storage**: Infrastructure complete (ready for asset files)
+- **Bookmarks**: Full bookmark management with persistent storage
+- **History**: Automatic history tracking and last-read verse
+- **Devotional Features**: UI structure for Missal, Rosary, Prayers, Confession
 
 ### 🚧 In Progress
-- **Reader View Rendering**: Fixing blank screen issue
-- **Verse Count Data**: Replacing stub function with real verse counts
+- **Full Bible Content**: Only Genesis 1:1-31 available (infrastructure ready for full Bible)
+- **Verse Counts**: Genesis complete, other books use placeholder
 
 ### 📋 Planned Features
 
@@ -51,9 +57,9 @@ The design intentionally avoids commentary, notes, audio, or online features to 
 - Canonical or relevance-based result ordering - *Phase 3*
 
 #### Persistence
-- Multiple bookmarks - *Phase 4*
-- Recent reading history - *Phase 4*
-- Automatic restore of last-read verse - *Phase 4*
+- Multiple bookmarks - ✅ **Implemented**
+- Recent reading history - ✅ **Implemented**
+- Automatic restore of last-read verse - ✅ **Implemented**
 
 #### Reliability
 - Guided recovery if assets are missing or corrupted - *Phase 5*
@@ -108,9 +114,10 @@ Please keep the UI minimal and reverent, and follow the existing architecture an
 
 See [STATUS_REPORT.md](STATUS_REPORT.md) for detailed implementation status, known issues, and roadmap.
 
-**Current Completion:** ~15-20% of planned features  
-**Marketplace Readiness:** ❌ Not Ready (see status report)  
-**Next Milestone:** Fix reader view rendering + complete Phase 1.3 (verse counts)
+**Current Completion:** ~40-50% of planned features  
+**Marketplace Readiness:** ⚠️ Beta/Early Access Ready (with disclaimers)  
+**Testing Status:** ✅ Ready for device testing  
+**Next Milestone:** Device testing + Phase 2.1 (asset build tool for full Bible)
 
 ---
 

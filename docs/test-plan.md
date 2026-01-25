@@ -98,19 +98,72 @@ This document defines how correctness, stability, and readiness are verified for
 ---
 
 ## Catalog Readiness Criteria
-- Fully offline operation
-- No prohibited hardware/network use
-- Clear README and licensing
-- Stable behavior under failure conditions
+- Fully offline operation ✅
+- No prohibited hardware/network use ✅
+- Clear README and licensing ✅
+- Stable behavior under failure conditions ⚠️ (basic handling, needs testing)
 
 ---
 
-## Manual Test Checklist
-- Remove SD card → launch app
-- Remove search shards only → reading still works
-- Navigate randomly across OT/NT/Deuterocanon
-- Perform repeated searches with different terms
-- Add/delete bookmarks, restart app
+## Testing Checkpoint: Current State
+
+**Recommended Testing Point**: ✅ **NOW**
+
+**What's Ready for Testing:**
+- Core navigation (Menu → Books → Chapters → Verses)
+- Reader view rendering (ViewPort approach)
+- Verse display and navigation (Genesis 1:1-31)
+- Scrolling within verses (Up/Down)
+- Verse navigation (Left/Right)
+- Bookmarks (add, delete, persist)
+- History (automatic tracking, last-read)
+- Phase 6 menu navigation (Missal, Rosary, Prayers, Confession)
+- SD card detection and error handling
+
+**What's Not Ready:**
+- Full Bible content (only Genesis 1)
+- Search functionality (placeholder)
+- Phase 6 content (stubs only)
+
+**Testing Priority:**
+1. **Critical**: Reader view rendering (verify ViewPort works)
+2. **Critical**: Navigation flows (all menu paths)
+3. **High**: Bookmarks persistence
+4. **High**: History tracking
+5. **Medium**: Error handling (missing SD card)
+6. **Low**: Phase 6 stub navigation
+
+---
+
+## Manual Test Checklist (Current State)
+
+### Core Functionality
+- [ ] App launches without crash
+- [ ] Menu displays all 9 items correctly
+- [ ] Navigate: Menu → Browse → Books → Chapters → Verses
+- [ ] Reader view displays header (Book Chapter:Verse)
+- [ ] Reader view displays verse text (Genesis 1:1-31)
+- [ ] Scrolling works (Up/Down in reader)
+- [ ] Verse navigation works (Left/Right)
+- [ ] Boundary handling (can't go below verse 1 or above 31)
+
+### Bookmarks & History
+- [ ] View bookmarks list (from menu)
+- [ ] Bookmarks persist after app restart
+- [ ] History tracks automatically when reading
+- [ ] Last-read verse saved
+
+### Error Handling
+- [ ] Remove SD card → app handles gracefully
+- [ ] Navigate to non-Genesis book → shows placeholder
+- [ ] Navigate to invalid verse → handled gracefully
+
+### Phase 6 Stubs
+- [ ] Missal menu item accessible
+- [ ] Rosary menu item accessible
+- [ ] Prayers menu item accessible
+- [ ] Confession menu item accessible
+- [ ] Submenus display correctly
 
 ---
 
@@ -120,3 +173,5 @@ This document defines how correctness, stability, and readiness are verified for
 - Search and navigation stable
 - Documentation complete
 - Ready for Flipper app catalog submission
+
+**Current Status**: ⚠️ **Partial** - Core features testable, but full Bible content and search pending.
