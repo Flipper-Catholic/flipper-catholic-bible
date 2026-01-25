@@ -1193,9 +1193,16 @@ static bool catholic_bible_reader_textbox_input_callback(InputEvent* event, void
 
 static CatholicBibleApp* catholic_bible_app_alloc(void) {
     CatholicBibleApp* app = malloc(sizeof(CatholicBibleApp));
+    if(!app) {
+        return NULL; // Memory allocation failed
+    }
     memset(app, 0, sizeof(CatholicBibleApp));
 
     app->gui = furi_record_open(RECORD_GUI);
+    if(!app->gui) {
+        free(app);
+        return NULL; // Failed to open GUI record
+    }
 
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&catholic_bible_scene_handlers, app);
@@ -1239,8 +1246,14 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
     storage_adapter_init(&app->storage);
     
     // Initialize bookmark and history managers (Phase 4)
-    bookmark_manager_init(&app->bookmarks);
-    history_manager_init(&app->history);
+    if(!bookmark_manager_init(&app->bookmarks)) {
+        // Log error but continue - bookmarks are optional
+        FURI_LOG_E("CatholicBible", "Failed to initialize bookmark manager");
+    }
+    if(!history_manager_init(&app->history)) {
+        // Log error but continue - history is optional
+        FURI_LOG_E("CatholicBible", "Failed to initialize history manager");
+    }
 
     // Start at menu
     scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMenu);
