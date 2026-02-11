@@ -60,36 +60,37 @@
 - [x] **Clean code structure** - Well-organized, documented
 - [x] **No prohibited hardware use** - No network, no prohibited APIs
 - [x] **No critical bugs** - Reader view fixed (ViewPort-only, infinite scroll)
-- [x] **Core features functional** - Navigation works; reading limited to Genesis 1 (infrastructure ready)
-- [ ] **Error handling** ⚠️ - Basic handling present, needs enhancement
+- [x] **Core features functional** - Navigation works; full Bible (34,827 verses) bundled in FAP; optional SD override
+- [ ] **Error handling** ⚠️ - Basic handling present; Phase 5.1 guided recovery optional for catalog
 
 ### Documentation Requirements ✅
-- [x] **README.md** - Present but needs update for current state
+- [x] **README.md** - Present with usage, installation, hardware
 - [x] **License information** - MIT License clearly stated
-- [x] **Feature description** - Present but needs accuracy update
-- [ ] **Installation instructions** ⚠️ - Present but needs SD card asset setup guide
-- [ ] **User guide** ⚠️ - Missing (how to add Bible assets)
+- [x] **Feature description** - Accurate (full Bible, bookmarks, history, devotional stubs)
+- [x] **Installation instructions** - One-FAP install; SD optional for override
+- [x] **changelog.md** - Version history (v0.1, v0.2) per catalog format
+- [ ] **App screenshots** ⚠️ - Required for catalog PR: take with qFlipper; first = preview
 
 ### Functional Requirements ⚠️
 - [x] **App launches** - Should launch without crash (needs testing)
 - [x] **Exits cleanly** - Proper cleanup implemented
-- [ ] **Core features work** ⚠️ - Navigation works, reading limited
-- [ ] **Handles missing SD card** ⚠️ - Basic handling, needs graceful messages
+- [x] **Core features work** - Navigation and full-Bible reading (bundled FAP) functional
+- [ ] **Handles missing SD card** ⚠️ - Not needed when using bundled assets; basic handling if SD used
 - [ ] **Stable under normal use** ⚠️ - Needs testing
 - [x] **No prohibited hardware/network** - Fully offline
 
-### Content Requirements ⚠️
-- [ ] **Full Bible text** ❌ - Only Genesis 1:1-31 (0.01%)
-- [x] **All 73 books navigable** - Navigation works, text missing
-- [ ] **Search functional** ❌ - Placeholder only
+### Content Requirements ✅
+- [x] **Full Bible text** - 73 books, 34,827 verses bundled in FAP (`files/`); optional SD override
+- [x] **All 73 books navigable** - Navigation and reading for full canon
+- [ ] **Search functional** ❌ - Placeholder only (Phase 3)
 - [x] **Bookmarks/History** - Fully functional
 
-### App Store Submission Requirements
-Based on Flipper app catalog standards:
+### App Store / Catalog Submission Requirements
+Aligns with [Flipper Apps Catalog Contributing](https://github.com/flipperdevices/flipper-application-catalog/blob/main/documentation/Contributing.md):
 
-1. **App must be functional** ⚠️
+1. **App must be functional** ✅
    - Navigation: ✅ Works
-   - Reading: ⚠️ Limited (Genesis 1 only)
+   - Reading: ✅ Full Bible (bundled); SD override supported
    - Bookmarks: ✅ Works
    - History: ✅ Works
 

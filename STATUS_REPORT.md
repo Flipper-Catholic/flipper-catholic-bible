@@ -11,23 +11,24 @@
 The project has made significant progress with core infrastructure complete and reader fully functional. **Major milestones achieved:**
 
 1. ✅ **Reader view** – ViewPort-only, infinite scroll, single-spaced full-width text; OK = toggle bookmark (header shows "(BM)")
-2. ✅ **Verse count data** – Genesis complete (Phase 1.3)
-3. ✅ **SD card storage adapter** – Complete; lazy index load; verse text from SD (Phase 2.2, 2.3)
-4. ✅ **Asset build tool** – `tools/build_bible_assets.py` + Genesis 1–2 source JSON (Phase 2.1 partial)
-5. ✅ **Bookmarks & History** – Full UI: Last read menu, OK=bookmark, Bookmarks/History submenus open reader (Phase 4)
-6. ✅ **Navigation** – Back exits reader and returns from Verses/Chapters/Books
-7. ✅ **Custom app icon** – Cross icon; app under Apps → Tools
-8. ✅ **Phase 6 devotional features** – UI stubbed (Missal, Rosary, Prayers, Confession)
+2. ✅ **Full Bible bundled** – 73 books, 34,827 verses in FAP (`files/`); optional SD `/apps_data/bible/` override (Phase 2)
+3. ✅ **Verse count data** – Genesis complete (Phase 1.3); other books use placeholder counts
+4. ✅ **SD card storage adapter** – Complete; lazy index load; verse text from SD or bundled (Phase 2.2, 2.3)
+5. ✅ **Asset build tool** – Converts `bible_source.json` → binary assets; full Bible in repo (Phase 2.1)
+6. ✅ **Bookmarks & History** – Full UI: Last read menu, OK=bookmark, Bookmarks/History submenus open reader (Phase 4)
+7. ✅ **Navigation** – Back exits reader and returns from Verses/Chapters/Books
+8. ✅ **Custom app icon** – Cross icon; app under Apps → Tools
+9. ✅ **Phase 6 devotional features** – UI stubbed; single-file design (devotional.json) and placeholder (Missal, Rosary, Prayers, Confession)
 
-**Current Completion:** ~45-55% of planned features  
-**Marketplace Readiness:** ⚠️ **Beta/Early Access Ready** (with disclaimers)  
+**Current Completion:** ~70% of planned features (core reading + full content + persistence done)  
+**Marketplace Readiness:** ✅ **Catalog-ready** after adding screenshots + changelog (see roadmap)  
 **Testing Readiness:** ✅ **Ready for Device Testing**
 
 **Remaining Work:**
-- Expand SD assets (full Genesis or full Bible via JSON/source)
+- Catalog: app screenshots (qFlipper), changelog.md ✅ added
 - Search functionality (Phase 3)
-- Phase 6 content implementation
-- Error handling enhancements (Phase 5.1)
+- Phase 6 content implementation (devotional.json)
+- Optional: Phase 5.1 guided recovery; Phase 1.3 verse counts for remaining 72 books
 
 ---
 
@@ -47,7 +48,7 @@ The project has made significant progress with core infrastructure complete and 
 
 #### Phase 1: Core Reading Experience ✅ COMPLETE
 - ✅ **1.1 Reader View**: ViewPort-only (add/remove in scene), infinite scroll (Up/Down at edge = prev/next verse), single-spaced text, full-width wrap, compact header/divider
-- ✅ **1.2 Basic Text Loading**: Genesis 1:1-31 hardcoded; Genesis 1–2 (56 verses) via SD assets when present
+- ✅ **1.2 Basic Text Loading**: Full Bible (34,827 verses) bundled in FAP; optional SD override
 - ✅ **1.3 Verse Count Data**: Real verse counts for Genesis (all 50 chapters)
 
 **Status**: Phase 1 complete. Reader renders correctly; Back exits reader and works from Verses list.
@@ -81,19 +82,11 @@ The project has made significant progress with core infrastructure complete and 
 
 ## Current Issues & Limitations
 
-### 🟡 **P1: Limited Text Content**
-**Status:** Known limitation  
-**Impact:** Only Genesis 1:1-31 available (0.01% of Bible)  
-**Description:** Full Bible text requires Phase 2.1 (asset build tool) and Bible text source.
+### ✅ **Resolved: Full Text Content**
+**Status:** Addressed  
+**Description:** Full Douay-Rheims Bible (73 books, 34,827 verses) is bundled in the FAP; no SD required. Optional: place assets on SD `/apps_data/bible/` to override. Build tool and source (`bible_source.json`) in repo.
 
-**Current Workaround:** App works for Genesis 1. Other books show placeholder message.
-
-**Required Work:**
-- Phase 2.1: Asset build tool to convert Bible text to binary format
-- Source Bible text in structured format (USFM/OSIS/JSON)
-- Generate asset files for SD card
-
-### 🟡 **P1: Verse Counts Incomplete**
+### 🟡 **P2: Verse Counts Incomplete**
 **Status:** Partial implementation  
 **Impact:** Only Genesis has accurate verse counts  
 **Description:** Genesis (all 50 chapters) has real verse counts. Other books use placeholder (50 verses).

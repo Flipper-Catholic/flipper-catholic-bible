@@ -287,13 +287,15 @@ Phase 5 (Polish)
 
 ## Recommended Implementation Sequence
 
-1. **Phase 1** (Core Reading) - Build the foundation
-2. **Phase 2** (Storage) - Enable full Bible content
-3. **Phase 4** (Bookmarks/History) - Add persistence (can partially parallel with Phase 3)
-4. **Phase 3** (Search) - Add advanced feature
-5. **Phase 5** (Polish) - Prepare for release
+1. ~~**Phase 1** (Core Reading)~~ ✅ Done
+2. ~~**Phase 2** (Storage + full Bible bundle)~~ ✅ Done
+3. ~~**Phase 4** (Bookmarks/History)~~ ✅ Done
+4. **Catalog readiness** – Add `changelog.md`, app screenshots (qFlipper), then submit `manifest.yml` to Apps Catalog (see checklist above)
+5. **Phase 5** (Polish) – Optional before/after catalog: 5.1 guided recovery message, 5.2–5.4 as needed
+6. **Phase 3** (Search) or **Phase 6** (Devotional content) – As roadmap priority (P2)
+7. **Phase 1.3 remainder** – Verse counts for remaining 72 books (data entry; improves lists when SD not used)
 
-**Rationale**: Reading is essential before other features. Storage enables real content. Bookmarks/history can be built while search index is being developed. Search is complex and can come later. Polish comes last.
+**Rationale**: Core reading, storage, and persistence are complete; full Bible is bundled. Next: meet catalog checklist (changelog, screenshots), then optional polish or new features.
 
 ---
 
@@ -302,17 +304,45 @@ Phase 5 (Polish)
 1. ~~**Reader View Rendering Bug**~~ ✅ Fixed (ViewPort-only reader)
 2. ~~**Storage Adapter**~~ ✅ Implemented (Phase 2.2)
 3. ~~**Asset Build Tool**~~ ✅ Implemented (Phase 2.1 partial; Genesis 1–2)
-4. 🟡 **Incomplete Text Content**: Only 31 verses in-app; 56 with SD (Genesis 1–2). Full Bible requires expanding `bible_source.json` and build tool.
+4. ~~**Incomplete Text Content**~~ **Addressed**: Full Bible (34,827 verses) bundled in FAP; also loadable from SD `/apps_data/bible/`. Converter + build tool in repo.
 5. **Search**: Phase 3 placeholder only (index build + engine pending)
-6. **Error handling**: Basic; guided recovery (Phase 5.1) pending
+6. **Error handling**: Basic; guided recovery (Phase 5.1) optional for catalog
 
 ---
+
+## App catalog submission (Flipper Apps Catalog)
+
+Requirements from [Contributing Guide](https://github.com/flipperdevices/flipper-application-catalog/blob/main/documentation/Contributing.md):
+
+### General terms (we comply)
+- [x] **Open source license** – MIT
+- [x] **No infringement** – Public domain Bible (Douay-Rheims); no trademarks
+- [x] **No malicious/illegal code** – Offline only; no firmware bypass
+- [x] **UGC policies** – No user-generated content; static religious text
+
+### Source repo checklist (before PR to catalog)
+- [x] **Buildable with uFBT** – Compatible with current firmware
+- [x] **App icon** – `icon.png` (fap_icon); catalog may expect 10×10px 1-bit for listing
+- [ ] **App screenshots** – Take with qFlipper; do not change resolution; first screenshot = app preview. **Add to repo before catalog PR.**
+- [x] **README.md** – Usage, installation, hardware (SD card)
+- [ ] **changelog.md** – Version history in format below. **Add to repo.**
+- [x] **application.fam** – appid, name, fap_category, fap_version, fap_description, fap_author
+
+### Catalog PR (separate step)
+- [ ] **manifest.yml** – Create and submit via PR to `flipperdevices/flipper-application-catalog` (applications/&lt;category&gt;/&lt;appid&gt;/manifest.yml); set `commit_sha` to this repo’s commit after changelog + screenshots are in.
+
+### Priority order for next work (groomed)
+1. **P0 – Catalog readiness:** Add `changelog.md`; add app screenshots (qFlipper); optional: Phase 5.1 guided message when assets missing.
+2. **P1 – Optional polish:** Phase 5.1 error handling; Phase 1.3 verse counts for remaining 72 books.
+3. **P2 – Features:** Phase 3 Search; Phase 6 devotional content (Missal, Rosary, Prayers, Confession from devotional.json).
 
 ---
 
 ## Phase 6: Catholic Devotional Features ✝️
 
 **Goal**: Expand app beyond Bible reading to include essential Catholic devotional resources.
+
+**Data design:** One combined asset for Missal, Rosary, Prayers, Confession; Missal is year-dependent (A/B/C lectionary). US source: [USCCB](https://www.usccb.org/). See **docs/devotional-data-design.md**.
 
 ### 6.1 Roman Catholic Missal
 - [ ] Design missal data structure (readings, prayers, responses)
