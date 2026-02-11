@@ -54,6 +54,7 @@
   - Entry point: `catholic_bible_app`
   - Stack size: 4096
   - Icon: `A_Book_14`
+  - **fap_icon: `icon.png`** (custom cross icon)
   - **fap_category: `Tools`** (installs under Apps → Tools)
   - fap_version, fap_description, fap_author set for catalog
 - [x] **Clean code structure** - Well-organized, documented
@@ -136,6 +137,7 @@ Based on Flipper app catalog standards:
    - Verse display (Genesis 1:1-31)
    - Verse navigation (infinite scroll: Up/Down at edge = prev/next verse; Left/Right also)
    - Scrolling (Up/Down within verse)
+   - Back from Verses list returns to Chapters; Back from reader exits to Verses
    - Bookmarks (add/delete)
    - History (automatic tracking)
    - Menu navigation (all 9 menu items)

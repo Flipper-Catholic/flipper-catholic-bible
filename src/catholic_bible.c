@@ -287,6 +287,12 @@ static void catholic_bible_submenu_callback(void* context, uint32_t index) {
  * Navigation (Back) callback (SDK 1.4.3 style)
  * ==========================================================================*/
 
+/* Return VIEW_NONE so ViewDispatcher calls navigation_callback (Back goes to scene manager). */
+static uint32_t catholic_bible_submenu_previous_callback(void* context) {
+    (void)context;
+    return VIEW_NONE;
+}
+
 static bool catholic_bible_navigation_callback(void* context) {
     CatholicBibleApp* app = context;
     return scene_manager_handle_back_event(app->scene_manager);
@@ -550,63 +556,128 @@ static void catholic_bible_scene_browse_verses_on_exit(void* context) {
  * Custom Reader View with Scrolling
  * ==========================================================================*/
 
-#define READER_HEADER_HEIGHT 28
-#define READER_LINE_SPACING 10
-#define READER_LEFT_MARGIN 4
-#define READER_RIGHT_MARGIN 4
-#define READER_TOP_MARGIN 4
+#define READER_HEADER_HEIGHT 16
+#define READER_LINE_HEIGHT   2
+#define READER_LEFT_MARGIN   4
+#define READER_RIGHT_MARGIN  4
+#define READER_TOP_MARGIN    2
+#define READER_MAX_LINE_LEN  120
 
-/* Draw wrapped text with scroll offset; sets app->reader_content_height when app is non-NULL. */
+/* Draw one line only if it's in the visible band; return next Y (top of next line). */
+static int32_t reader_draw_line(Canvas* canvas, const char* line, int32_t line_top, int32_t clip_top, int32_t clip_bottom, uint8_t font_height) {
+    int32_t baseline = line_top + font_height;
+    if(baseline < clip_top || line_top > clip_bottom) return line_top + font_height + READER_LINE_HEIGHT;
+    canvas_draw_str(canvas, READER_LEFT_MARGIN, (uint8_t)baseline, line);
+    return line_top + font_height + READER_LINE_HEIGHT;
+}
+
+/* Word-wrap and draw verse text. Sets app->reader_content_height. Never draws past width. */
 static void reader_draw_text(Canvas* canvas, const char* text, int32_t scroll_y, uint8_t width, uint8_t height, CatholicBibleApp* app) {
     if(!text || !canvas) return;
     
     uint8_t font_height = canvas_current_font_height(canvas);
     int32_t content_top = READER_HEADER_HEIGHT + READER_TOP_MARGIN;
     int32_t current_y = content_top - scroll_y;
-    uint8_t available_width = width - READER_LEFT_MARGIN - READER_RIGHT_MARGIN;
+    uint8_t available_width = (width >= READER_LEFT_MARGIN + READER_RIGHT_MARGIN) ?
+        (width - READER_LEFT_MARGIN - READER_RIGHT_MARGIN) : (width - 8);
+    if(available_width > READER_MAX_LINE_LEN) available_width = READER_MAX_LINE_LEN;
     
-    char line[128];
-    size_t line_pos = 0;
-    size_t text_len = strlen(text);
-    if(text_len > 1000) text_len = 1000;
+    int32_t clip_top = READER_HEADER_HEIGHT;
+    int32_t clip_bottom = (int32_t)height + font_height + READER_LINE_HEIGHT;
     
-    for(size_t i = 0; i < text_len; i++) {
-        char c = text[i];
-        
-        if(c == '\n') {
-            line[line_pos] = '\0';
-            if(current_y + font_height >= 0 && current_y < (int32_t)(height + font_height) && line_pos > 0) {
-                canvas_draw_str(canvas, READER_LEFT_MARGIN, (uint8_t)(current_y + font_height), line);
+    char line[READER_MAX_LINE_LEN + 1];
+    size_t line_len = 0;
+    line[0] = '\0';
+    
+    const char* p = text;
+    size_t text_remaining = strlen(p);
+    if(text_remaining > 2000) text_remaining = 2000;
+    
+    while(text_remaining > 0) {
+        /* Skip spaces and handle newlines */
+        while(text_remaining > 0 && (*p == ' ' || *p == '\t')) { p++; text_remaining--; }
+        if(text_remaining > 0 && *p == '\n') {
+            line[line_len] = '\0';
+            if(line_len > 0) {
+                current_y = reader_draw_line(canvas, line, current_y, clip_top, clip_bottom, font_height);
+                line_len = 0;
+                line[0] = '\0';
+            } else {
+                current_y += font_height + READER_LINE_HEIGHT;
             }
-            line_pos = 0;
-            current_y += font_height + READER_LINE_SPACING;
+            p++;
+            text_remaining--;
+            continue;
+        }
+        if(text_remaining == 0) break;
+        
+        /* Read next word (run of non-whitespace) */
+        const char* word_start = p;
+        while(text_remaining > 0 && *p != ' ' && *p != '\t' && *p != '\n') { p++; text_remaining--; }
+        size_t word_len = (size_t)(p - word_start);
+        if(word_len == 0) continue;
+        if(word_len > READER_MAX_LINE_LEN) word_len = READER_MAX_LINE_LEN;
+        
+        /* Measure word (or first chunk if word too long) */
+        char word_buf[READER_MAX_LINE_LEN + 1];
+        if(word_len >= sizeof(word_buf)) word_len = sizeof(word_buf) - 1;
+        memcpy(word_buf, word_start, word_len);
+        word_buf[word_len] = '\0';
+        
+        uint16_t word_width = canvas_string_width(canvas, word_buf);
+        uint16_t space_width = (line_len > 0) ? canvas_string_width(canvas, " ") : 0;
+        uint16_t line_width = canvas_string_width(canvas, line);
+        uint16_t would_be = line_width + space_width + word_width;
+        
+        /* If word alone exceeds width, break into chunks that fit */
+        if(word_width > available_width) {
+            line[line_len] = '\0';
+            if(line_len > 0) {
+                current_y = reader_draw_line(canvas, line, current_y, clip_top, clip_bottom, font_height);
+                line_len = 0;
+                line[0] = '\0';
+            }
+            for(size_t chunk_start = 0; chunk_start < word_len; ) {
+                size_t n = 0;
+                for(size_t k = 1; chunk_start + k <= word_len; k++) {
+                    line[0] = '\0';
+                    memcpy(line, word_start + chunk_start, k);
+                    line[k] = '\0';
+                    if(canvas_string_width(canvas, line) <= (uint16_t)available_width)
+                        n = k;
+                    else
+                        break;
+                }
+                if(n == 0) n = 1;
+                line[n] = '\0';
+                current_y = reader_draw_line(canvas, line, current_y, clip_top, clip_bottom, font_height);
+                chunk_start += n;
+            }
+            line_len = 0;
+            line[0] = '\0';
             continue;
         }
         
-        if(line_pos < sizeof(line) - 1) {
-            line[line_pos++] = c;
-            line[line_pos] = '\0';
-            
-            if(c == ' ' || line_pos == sizeof(line) - 1) {
-                uint16_t line_width = canvas_string_width(canvas, line);
-                if(line_width > available_width && c == ' ') {
-                    line[line_pos - 1] = '\0';
-                    if(current_y + font_height >= 0 && current_y < (int32_t)(height + font_height)) {
-                        canvas_draw_str(canvas, READER_LEFT_MARGIN, (uint8_t)(current_y + font_height), line);
-                    }
-                    line_pos = 0;
-                    current_y += font_height + READER_LINE_SPACING;
-                }
-            }
+        /* If adding this word would overflow, flush current line first */
+        if(line_len > 0 && would_be > available_width) {
+            line[line_len] = '\0';
+            current_y = reader_draw_line(canvas, line, current_y, clip_top, clip_bottom, font_height);
+            line_len = 0;
+            line[0] = '\0';
         }
+        
+        /* Append word to line (with space if not first) */
+        if(line_len > 0) {
+            line[line_len++] = ' ';
+            line[line_len] = '\0';
+        }
+        for(size_t i = 0; i < word_len && line_len < READER_MAX_LINE_LEN; i++)
+            line[line_len++] = word_buf[i];
+        line[line_len] = '\0';
     }
     
-    if(line_pos > 0) {
-        line[line_pos] = '\0';
-        if(current_y + font_height >= 0 && current_y < (int32_t)(height + font_height)) {
-            canvas_draw_str(canvas, READER_LEFT_MARGIN, (uint8_t)(current_y + font_height), line);
-        }
-        current_y += font_height + READER_LINE_SPACING;
+    if(line_len > 0) {
+        current_y = reader_draw_line(canvas, line, current_y, clip_top, clip_bottom, font_height);
     }
     
     if(app) {
@@ -624,32 +695,29 @@ static void reader_viewport_draw_callback(Canvas* canvas, void* context) {
     canvas_clear(canvas);
     canvas_set_font(canvas, FontSecondary);
     
-    // Draw header: Book Chapter:Verse (with safety checks)
-        const char* book = cb_book_name(app->selected_book_index);
+    /* Header: single line "Book C:V" - keep short so it doesn't run into content */
+    const char* book = cb_book_name(app->selected_book_index);
     if(book) {
-        char header[64];
-        snprintf(header, sizeof(header), "%s %u:%u", book, 
-                 (unsigned)app->selected_chapter, 
+        char header[48];
+        snprintf(header, sizeof(header), "%s %u:%u", book,
+                 (unsigned)app->selected_chapter,
                  (unsigned)app->selected_verse);
-        canvas_draw_str(canvas, READER_LEFT_MARGIN, 12, header);
+        canvas_draw_str(canvas, READER_LEFT_MARGIN, 10, header);
     }
     
-    // Draw separator line
-    canvas_draw_line(canvas, 0, READER_HEADER_HEIGHT - 2, 128, READER_HEADER_HEIGHT - 2);
+    /* Separator below header; content is strictly below this */
+    canvas_draw_line(canvas, 0, READER_HEADER_HEIGHT - 1, 128, READER_HEADER_HEIGHT - 1);
     
-    // Draw verse text
+    /* Verse body: word-wrapped, clipped to content area */
     canvas_set_font(canvas, FontKeyboard);
     
     if(app->current_verse_text && strlen(app->current_verse_text) > 0) {
-        uint8_t viewport_width = 128;
-        uint8_t viewport_height = 64 - READER_HEADER_HEIGHT;
         reader_draw_text(canvas, app->current_verse_text, app->scroll_offset,
-                        viewport_width, viewport_height, app);
+                        128, 64 - READER_HEADER_HEIGHT, app);
     } else {
         if(app) app->reader_content_height = 0;
-        // Show placeholder if no text loaded yet
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, READER_LEFT_MARGIN, READER_HEADER_HEIGHT + 20, "No text");
+        canvas_draw_str(canvas, READER_LEFT_MARGIN, READER_HEADER_HEIGHT + 14, "No text");
     }
 }
 
@@ -1227,7 +1295,9 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     // Register views
-    view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewSubmenu, submenu_get_view(app->submenu));
+    View* submenu_view = submenu_get_view(app->submenu);
+    view_set_previous_callback(submenu_view, catholic_bible_submenu_previous_callback);
+    view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewSubmenu, submenu_view);
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewWidget, widget_get_view(app->widget));
     
     // Register TextBox view with input callback for navigation

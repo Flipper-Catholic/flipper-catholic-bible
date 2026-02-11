@@ -47,6 +47,7 @@ This document defines how correctness, stability, and readiness are verified for
 ### Canon & Navigation
 - All Catholic books listed in canonical order
 - Book → Chapter → Verse navigation correct
+- Back from Verses → Chapters → Books → Menu at each level; Back from reader exits to verse list
 - Genesis 1:1 and final verse accessible
 - Boundary navigation does not overflow/underflow
 

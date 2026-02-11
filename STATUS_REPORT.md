@@ -1,6 +1,6 @@
 # Project Status Report
 **Catholic Bible App for Flipper Zero**  
-**Date:** January 2025  
+**Date:** January 2026  
 **Branch:** `main`  
 **Target:** Flipper Marketplace Compliance & Testing Checkpoint
 
@@ -8,20 +8,23 @@
 
 ## Executive Summary
 
-The project has made significant progress with core infrastructure complete and ready for testing. **Major milestones achieved:**
+The project has made significant progress with core infrastructure complete and reader fully functional. **Major milestones achieved:**
 
-1. ✅ **Reader view rendering fixed** (ViewPort approach - Phase 1.1)
-2. ✅ **Verse count data implemented** (Genesis complete - Phase 1.3)
-3. ✅ **SD card storage adapter complete** (Phase 2.2)
-4. ✅ **Bookmarks & History fully functional** (Phase 4)
-5. ✅ **Phase 6 devotional features stubbed** (UI structure complete)
+1. ✅ **Reader view** – ViewPort-only (fixes blank screen), infinite scroll, single-spaced full-width text, compact header/divider
+2. ✅ **Verse count data** – Genesis complete (Phase 1.3)
+3. ✅ **SD card storage adapter** – Complete; app loads verses from SD when present (Phase 2.2)
+4. ✅ **Asset build tool** – `tools/build_bible_assets.py` + Genesis 1–2 source JSON (Phase 2.1 partial)
+5. ✅ **Bookmarks & History** – Fully functional (Phase 4)
+6. ✅ **Navigation** – Back button exits Verses/Chapters/Books via submenu previous callback
+7. ✅ **Custom app icon** – Cross icon (fap_icon); app installs under Apps → Tools
+8. ✅ **Phase 6 devotional features** – UI stubbed (Missal, Rosary, Prayers, Confession)
 
-**Current Completion:** ~40-50% of planned features  
+**Current Completion:** ~45-55% of planned features  
 **Marketplace Readiness:** ⚠️ **Beta/Early Access Ready** (with disclaimers)  
 **Testing Readiness:** ✅ **Ready for Device Testing**
 
 **Remaining Work:**
-- Full Bible text content (Phase 2.1 - asset build tool needed)
+- Expand SD assets (full Genesis or full Bible via JSON/source)
 - Search functionality (Phase 3)
 - Phase 6 content implementation
 - Error handling enhancements (Phase 5.1)
@@ -43,11 +46,11 @@ The project has made significant progress with core infrastructure complete and 
 - ✅ Comprehensive documentation (6 docs in `/docs`)
 
 #### Phase 1: Core Reading Experience ✅ COMPLETE
-- ✅ **1.1 Reader View**: ViewPort-based rendering (fixed blank screen bug)
-- ✅ **1.2 Basic Text Loading**: Genesis 1:1-31 hardcoded and integrated
+- ✅ **1.1 Reader View**: ViewPort-only (add/remove in scene), infinite scroll (Up/Down at edge = prev/next verse), single-spaced text, full-width wrap, compact header/divider
+- ✅ **1.2 Basic Text Loading**: Genesis 1:1-31 hardcoded; Genesis 1–2 (56 verses) via SD assets when present
 - ✅ **1.3 Verse Count Data**: Real verse counts for Genesis (all 50 chapters)
 
-**Status**: Phase 1 complete. Reader view renders correctly. Genesis verse counts accurate.
+**Status**: Phase 1 complete. Reader renders correctly; Back exits reader and works from Verses list.
 
 #### Phase 2.2: SD Card Storage Adapter ✅ COMPLETE
 - ✅ Storage adapter module implemented
@@ -176,19 +179,9 @@ The project has made significant progress with core infrastructure complete and 
 ## Git Repository Status
 
 **Current Branch:** `main`  
-**Uncommitted Changes:** None (working tree clean)
+**Uncommitted Changes:** See `git status` (this doc updated as part of housekeeping).
 
-**Recent Commits:**
-- Fix compilation errors and deploy app
-- Update roadmap: Fix outdated status section
-- Add testing quick start guide
-- Add comprehensive device testing checklist
-- Fix bugs before testing
-- Documentation Update: Compliance Review & Testing Checkpoint
-- Phase 6: Add Catholic Devotional Features (Code Implementation)
-- Phase 4: Bookmarks and History integration
-
-**Branch Status:** Local commits ahead of `origin/main` (ready to push)
+**Recent work:** Reader layout (divider, single-space, full width), Back button fix (submenu previous callback), custom icon, asset build tool + Genesis 1–2 source, doc updates.
 
 ---
 
@@ -197,12 +190,12 @@ The project has made significant progress with core infrastructure complete and 
 ### Required for Submission
 
 #### ✅ Code Requirements
-- [x] MIT License (needs copyright update)
-- [x] Proper `application.fam` manifest
+- [x] MIT License (copyright: Gilbert Roberts)
+- [x] Proper `application.fam` manifest (fap_icon, fap_category=Tools)
 - [x] Clean code structure
-- [ ] **No critical bugs** ❌ (reader view broken)
-- [ ] **Core features functional** ❌ (only 31 verses work)
-- [ ] Error handling for common failures ❌
+- [x] **No critical bugs** – Reader fixed; Back works from Verses
+- [x] **Core features functional** – Navigation, reading (Genesis 1–2 with SD), bookmarks, history
+- [ ] Error handling for common failures ⚠️ (basic only)
 
 #### ✅ Documentation Requirements
 - [x] README with installation instructions
@@ -211,12 +204,12 @@ The project has made significant progress with core infrastructure complete and 
 - [ ] **Accurate feature list** ⚠️ (README claims features not implemented)
 - [ ] User guide for asset setup ❌
 
-#### ❌ Functional Requirements
-- [ ] App launches without crashes ✅ (but reader doesn't work)
-- [ ] Core advertised features work ❌
-- [ ] Handles missing SD card gracefully ❌
-- [ ] Stable under normal use ❌ (blank screen issue)
-- [ ] No prohibited hardware/network use ✅
+#### ✅ Functional Requirements
+- [x] App launches without crashes
+- [x] Core advertised features work (reader, navigation, bookmarks, history)
+- [ ] Handles missing SD card gracefully ⚠️ (basic fallback)
+- [x] Stable under normal use (reader and Back fixed)
+- [x] No prohibited hardware/network use
 
 #### ❌ Content Requirements
 - [ ] Full Bible text accessible ❌ (only Genesis 1)

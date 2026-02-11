@@ -17,16 +17,14 @@ This roadmap maps the features described in the documentation to implementation 
 - ✅ MIT License file
 - ✅ Comprehensive documentation (6 docs in `/docs`)
 
-### Known Limitations & Critical Issues
-- 🔴 **CRITICAL BUG**: Reader View draw callback not rendering (blank screen) - **P0 Blocker**
-- ⚠️ ~~Verse selection shows placeholder widget ("Reader text next.")~~ ✅ **Fixed in Phase 1.1**
-- ⚠️ ~~No actual Bible text loading or display~~ ✅ **Partially Fixed in Phase 1.2 (Genesis 1:1-31 only)**
-- ⚠️ Verse counts use stub function (defaults to 50 per chapter, except Genesis 1) - **P1**
-- ⚠️ Only 31 verses implemented (0.01% of full Bible) - **P0 Blocker**
-- ⚠️ Search scene is placeholder only
-- ⚠️ No SD card file access (Phase 2 not started)
-- ⚠️ No persistence (bookmarks, history) - Phase 4 not started
-- ⚠️ No error handling for missing SD card or corrupt files
+### Known Limitations
+- ✅ ~~Reader blank screen~~ **Fixed** (ViewPort-only, infinite scroll, layout)
+- ✅ ~~Verse selection / text display~~ **Fixed** (Genesis 1:1-31 in-app; Genesis 1–2 via SD)
+- ✅ SD card storage and asset build tool implemented (Phase 2.1/2.2)
+- ✅ Bookmarks, history, Back-from-Verses working
+- ⚠️ Verse counts: Genesis complete; other books use placeholder (50)
+- ⚠️ Search scene placeholder only (Phase 3)
+- ⚠️ Error handling for missing/corrupt SD remains basic
 
 ---
 
@@ -34,45 +32,26 @@ This roadmap maps the features described in the documentation to implementation 
 
 **Goal**: Enable reading actual Bible verses on the device.
 
-### 1.1 Reader View Implementation
-- [x] Add custom View with draw callback (replaced TextBox approach)
-- [x] Implement Reader scene structure
-- [x] Add navigation between verses (Left/Right arrow keys)
-- [x] Add scrolling support (Up/Down arrow keys)
-- [x] Add verse context display (Book Name, Chapter:Verse)
-- [x] Input handling for navigation and scrolling
-- 🔴 **CRITICAL BUG**: View draw callback not rendering (blank screen) - **P0 Blocker**
+### 1.1 Reader View Implementation ✅
+- [x] ViewPort-only reader (add/remove in scene – fixes blank screen)
+- [x] Infinite scroll: Up/Down at top/bottom = previous/next verse; Left/Right also
+- [x] Word wrap, single-spaced text, full-width lines, compact header/divider
+- [x] Back exits reader; Back from Verses/Chapters/Books via submenu previous callback
 
-**Dependencies**: None  
-**Priority**: Critical (blocking all other features)  
-**Estimated Complexity**: High (Custom view implementation)
+**Status**: Complete. Reader renders correctly; navigation and Back working.
 
-**Status**: Implementation complete but non-functional due to rendering bug. Draw callback may not be invoked or View setup is incorrect. Needs debugging.
+### 1.2 Basic Text Loading ✅
+- [x] Hardcoded Genesis 1:1-31; SD card loading when assets present (Genesis 1–2 via build tool)
+- [x] Reader displays text; fallback to hardcoded when no SD assets
 
-**Note**: Switched from TextBox to custom View for better control over scrolling and rendering. Current implementation has draw callback that should render header, separator, and verse text, but screen remains blank.
+**Status**: Complete. Genesis 1–2 (56 verses) available with SD assets; 31 verses in-app only.
 
-### 1.2 Basic Text Loading
-- [x] Create simple in-memory verse data structure
-- [x] Implement hardcoded sample verses (Genesis 1:1-31)
-- [x] Integrate sample text with Reader view
-- [x] Replace placeholder verse selection with Reader navigation
-- ⚠️ **Limitation**: Only Genesis 1:1-31 implemented (31 verses out of ~31,000+ total)
-
-**Dependencies**: 1.1  
-**Priority**: Critical  
-**Estimated Complexity**: Low-Medium
-
-**Status**: Partially complete. Sample verses implemented but reader view rendering bug prevents display. Full Bible text requires Phase 2 (SD card asset loading).
-
-### 1.3 Verse Count Data
-- [ ] Replace `cb_chapter_verses_stub()` with real verse counts
-- [ ] Add verse count array to `books_meta.c`
-- [ ] Update Browse Verses scene to show accurate verse lists
-- [ ] Validate verse bounds in Reader view
+### 1.3 Verse Count Data ✅ (Genesis)
+- [x] Verse count array in `books_meta.c` for Genesis (all 50 chapters)
+- [x] Browse Verses shows accurate counts for Genesis; others use placeholder
 
 **Dependencies**: 1.2  
-**Priority**: High  
-**Estimated Complexity**: Low (data entry)
+**Remaining**: Add verse counts for remaining 72 books (data entry).
 
 **Phase 1 Acceptance Criteria**:
 - User can browse to any verse and see actual text
@@ -85,17 +64,13 @@ This roadmap maps the features described in the documentation to implementation 
 
 **Goal**: Move from hardcoded text to SD card-based assets.
 
-### 2.1 Asset Build Tool
-- [ ] Create `tools/build_assets.py` (per asset-build-pipeline.md)
-- [ ] Implement source text parsing (USFM/OSIS/JSON)
-- [ ] Build `bible_text.bin` (verse text concatenation)
-- [ ] Build `verse_index.bin` (offset/length mapping)
-- [ ] Build `canon_table.bin` (book/chapter metadata)
-- [ ] Generate `metadata.json` with hashes and validation
+### 2.1 Asset Build Tool ✅ (partial)
+- [x] `tools/build_bible_assets.py` – reads JSON, writes `bible_text.bin` + `verse_index.bin`
+- [x] `assets/source/bible_source.json` – Genesis 1–2 (56 verses) Douay-Rheims
+- [ ] Optional: `canon_table.bin`, `metadata.json` (not required for current reader)
+- [ ] Full Bible: add more books/chapters to JSON or support other source formats
 
-**Dependencies**: None (can start in parallel with Phase 1)  
-**Priority**: High (blocks full Bible content)  
-**Estimated Complexity**: High (requires external Bible text source)
+**Status**: Tool and sample data in place; copy output to SD `/apps_data/bible/`.
 
 ### 2.2 SD Card Storage Adapter
 - [ ] Implement Storage Adapter module (`storage_adapter.c/h`)

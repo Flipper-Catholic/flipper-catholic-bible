@@ -69,7 +69,9 @@
 - [ ] **TC-017**: Verse list shows correct verse count (Genesis should show accurate counts)
 - [ ] **TC-018**: Selecting a verse opens reader view
 
-**Expected Result:** Complete navigation flow works: Menu → Books → Chapters → Verses → Reader
+- [ ] **TC-018b**: From verse list, Back button returns to chapter list (and Back from chapters returns to books, etc.)
+
+**Expected Result:** Complete navigation flow works: Menu → Books → Chapters → Verses → Reader; Back exits each level correctly.
 
 **Notes:** _________________________________________________
 
