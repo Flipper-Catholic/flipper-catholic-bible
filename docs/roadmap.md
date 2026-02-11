@@ -72,28 +72,24 @@ This roadmap maps the features described in the documentation to implementation 
 
 **Status**: Tool and sample data in place; copy output to SD `/apps_data/bible/`.
 
-### 2.2 SD Card Storage Adapter
-- [ ] Implement Storage Adapter module (`storage_adapter.c/h`)
-- [ ] Add SD card detection and mount handling
-- [ ] Implement file reading for `bible_text.bin`
-- [ ] Implement verse lookup via `verse_index.bin`
-- [ ] Add integrity checking (magic numbers, version validation)
-- [ ] Handle missing/corrupt file errors gracefully
+### 2.2 SD Card Storage Adapter ✅
+- [x] Implement Storage Adapter module (`storage_adapter.c/h`)
+- [x] Add SD card detection and mount handling
+- [x] Implement file reading for `bible_text.bin`
+- [x] Implement verse lookup via `verse_index.bin`
+- [x] Add integrity checking (magic numbers, version validation)
+- [x] Handle missing/corrupt file errors gracefully
 
-**Dependencies**: 2.1 (or at least format specs)  
-**Priority**: High  
-**Estimated Complexity**: Medium-High
+**Status**: Complete. Index loaded on demand; verse text read from SD.
 
-### 2.3 Integration with Reader
-- [ ] Replace hardcoded verses with SD card loading
-- [ ] Implement lazy loading (load verses on demand)
-- [ ] Add loading spinner/indicator
-- [ ] Handle out-of-bounds verse access
-- [ ] Optimize memory usage (unload previous verses)
+### 2.3 Integration with Reader ✅
+- [x] Replace hardcoded verses with SD card loading (prefer SD when available)
+- [x] Implement lazy loading (index loaded on first verse request)
+- [ ] Add loading spinner/indicator (optional)
+- [x] Handle out-of-bounds verse access (fallback message)
+- [x] Optimize memory usage (single verse buffer, index cache)
 
-**Dependencies**: 2.1, 2.2  
-**Priority**: High  
-**Estimated Complexity**: Medium
+**Status**: Complete. Reader uses storage adapter with hardcoded fallback.
 
 **Phase 2 Acceptance Criteria**:
 - Full Douay-Rheims Bible accessible from SD card
@@ -165,40 +161,35 @@ This roadmap maps the features described in the documentation to implementation 
 
 **Goal**: Add persistence for user's reading progress and favorites.
 
-### 4.1 Bookmark Manager
-- [ ] Design bookmark storage format (Flipper app storage)
-- [ ] Implement Bookmark Manager module (`bookmark_manager.c/h`)
-- [ ] Add bookmark save/delete operations
-- [ ] Load bookmarks on app start
-- [ ] Add bookmark list UI (new scene or submenu)
-- [ ] Integrate bookmark access from Reader view
+### 4.1 Bookmark Manager ✅
+- [x] Design bookmark storage format (Flipper app storage)
+- [x] Implement Bookmark Manager module (`bookmark_manager.c/h`)
+- [x] Add bookmark save/delete operations
+- [x] Load bookmarks on app start
+- [x] Add bookmark list UI (submenu; select opens reader)
+- [x] Integrate bookmark access from Reader view (OK = toggle bookmark)
 
-**Dependencies**: Phase 1 (Reader view)  
-**Priority**: Medium  
-**Estimated Complexity**: Medium
+**Status**: Complete.
 
-### 4.2 History Manager
-- [ ] Implement History Manager module (`history_manager.c/h`)
-- [ ] Track last-read verse (auto-save)
-- [ ] Maintain recent reading history (e.g., last 20 verses)
-- [ ] Load history on app start
-- [ ] Add history list UI
-- [ ] Implement history cleanup (limit size)
+### 4.2 History Manager ✅
+- [x] Implement History Manager module (`history_manager.c/h`)
+- [x] Track last-read verse (auto-save)
+- [x] Maintain recent reading history (last 20 verses)
+- [x] Load history on app start
+- [x] Add history list UI (submenu; select opens reader)
+- [x] Implement history cleanup (limit size)
 
-**Dependencies**: Phase 1 (Reader view)  
-**Priority**: Medium  
-**Estimated Complexity**: Medium
+**Status**: Complete. History persisted on reader exit.
 
-### 4.3 UI Integration
-- [ ] Add bookmark button/action in Reader view
-- [ ] Add "Recent" option to main menu
-- [ ] Implement bookmark editing/deletion
-- [ ] Add "Jump to last read" on app launch
-- [ ] Update About scene with feature credits
+### 4.3 UI Integration ✅
+- [x] Add bookmark action in Reader view (OK = toggle; header shows "(BM)" when bookmarked)
+- [x] Add "Last read" option to main menu (jumps to last-read verse or History scene)
+- [x] Bookmarks submenu: select verse opens reader
+- [x] History submenu: select verse opens reader
+- [ ] Add "Jump to last read" on app launch (optional; menu suffices)
+- [x] Update About scene with SD path and features
 
-**Dependencies**: 4.1, 4.2  
-**Priority**: Medium  
-**Estimated Complexity**: Low-Medium
+**Status**: Complete.
 
 **Phase 4 Acceptance Criteria**:
 - Bookmarks persist across app restarts
@@ -306,13 +297,14 @@ Phase 5 (Polish)
 
 ---
 
-## Critical Blockers
+## Critical Blockers (Resolved / Current)
 
-1. 🔴 **Reader View Rendering Bug** (P0): View draw callback not rendering - blocks all reading functionality
-2. 🔴 **Incomplete Text Content** (P0): Only 31 verses (Genesis 1:1-31) - 0.01% of full Bible
-3. **Bible Text Source**: Need access to Douay-Rheims text in structured format (USFM/OSIS/JSON)
-4. **Asset Build Tool**: Must be completed before full Bible content is available (Phase 2.1)
-5. **Storage Adapter**: Blocks SD card-based content loading (Phase 2.2)
+1. ~~**Reader View Rendering Bug**~~ ✅ Fixed (ViewPort-only reader)
+2. ~~**Storage Adapter**~~ ✅ Implemented (Phase 2.2)
+3. ~~**Asset Build Tool**~~ ✅ Implemented (Phase 2.1 partial; Genesis 1–2)
+4. 🟡 **Incomplete Text Content**: Only 31 verses in-app; 56 with SD (Genesis 1–2). Full Bible requires expanding `bible_source.json` and build tool.
+5. **Search**: Phase 3 placeholder only (index build + engine pending)
+6. **Error handling**: Basic; guided recovery (Phase 5.1) pending
 
 ---
 

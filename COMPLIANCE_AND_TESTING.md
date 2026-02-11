@@ -1,6 +1,6 @@
 # Compliance & Testing Checkpoint
 **Catholic Bible App for Flipper Zero**  
-**Date:** January 2025  
+**Date:** January 2026  
 **Purpose:** Review documentation, compliance status, and identify testing checkpoint
 
 ---
@@ -28,8 +28,8 @@
 
 #### Phase 4: Bookmarks & History ✅
 - ✅ **4.1 Bookmark Manager**: Full implementation with persistent storage
-- ✅ **4.2 History Manager**: Full implementation with last-read tracking
-- ✅ **4.3 UI Integration**: Menu items, scenes, automatic history tracking
+- ✅ **4.2 History Manager**: Full implementation; history saved on reader exit
+- ✅ **4.3 UI Integration**: "Last read" menu; OK in reader = toggle bookmark (header "(BM)"); Bookmarks/History submenus open reader on select
 
 **Status**: Phase 4 complete. Bookmarks and history fully functional.
 

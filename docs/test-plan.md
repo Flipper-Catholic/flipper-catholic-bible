@@ -57,9 +57,9 @@ This document defines how correctness, stability, and readiness are verified for
 - Paging flows across verse boundaries smoothly
 
 ### Bookmarks & History
-- Multiple bookmarks persist across restarts
-- Recent history list updates correctly
-- Last-read verse restored on launch
+- Multiple bookmarks persist across restarts; OK in reader toggles bookmark; Bookmarks list opens verse on select
+- Recent history list updates correctly; History list opens verse on select; "Last read" menu jumps to last-read verse (or History if none)
+- Last-read verse available via "Last read" menu (restore on launch optional)
 
 ---
 

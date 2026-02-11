@@ -36,9 +36,10 @@
 #define VS_IS_VERSE(e)       (((e) & 0xFFFF0000u) == VS_EVT_VERSE_BASE)
 #define VS_DECODE_VERSE(e)   ((uint16_t)((e) & 0xFFFFu))
 
-#define READER_EVT_PREV_VERSE 0x91000001u
-#define READER_EVT_NEXT_VERSE 0x91000002u
-#define READER_EVT_BACK       0x91000003u
+#define READER_EVT_PREV_VERSE  0x91000001u
+#define READER_EVT_NEXT_VERSE  0x91000002u
+#define READER_EVT_BACK        0x91000003u
+#define READER_EVT_TOGGLE_BM   0x91000004u
 
 /* Forward declaration - use struct keyword for incomplete type */
 struct CatholicBibleApp;
@@ -164,6 +165,7 @@ typedef enum {
 
 typedef enum {
     MenuItemBrowse = 0,
+    MenuItemLastRead,
     MenuItemSearch,
     MenuItemMissal,
     MenuItemRosary,
@@ -314,6 +316,7 @@ static void catholic_bible_scene_menu_on_enter(void* context) {
     submenu_set_header(app->submenu, "Catholic Bible");
 
     submenu_add_item(app->submenu, "Browse", MenuItemBrowse, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "Last read", MenuItemLastRead, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "Search", MenuItemSearch, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "Missal", MenuItemMissal, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "Rosary", MenuItemRosary, catholic_bible_submenu_callback, app);
@@ -333,6 +336,14 @@ static bool catholic_bible_scene_menu_on_event(void* context, SceneManagerEvent 
         switch(event.event) {
         case MenuItemBrowse:
             scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBrowseBooks);
+            return true;
+        case MenuItemLastRead:
+            if(history_manager_get_last_read(&app->history,
+                    &app->selected_book_index, &app->selected_chapter, &app->selected_verse)) {
+                scene_manager_next_scene(app->scene_manager, CatholicBibleSceneReader);
+            } else {
+                scene_manager_next_scene(app->scene_manager, CatholicBibleSceneHistory);
+            }
             return true;
         case MenuItemSearch:
             scene_manager_next_scene(app->scene_manager, CatholicBibleSceneSearch);
@@ -695,7 +706,7 @@ static void reader_viewport_draw_callback(Canvas* canvas, void* context) {
     canvas_clear(canvas);
     canvas_set_font(canvas, FontSecondary);
     
-    /* Header: single line "Book C:V" - keep short so it doesn't run into content */
+    /* Header: "Book C:V" and optional "(Bookmarked)" (Phase 4.3) */
     const char* book = cb_book_name(app->selected_book_index);
     if(book) {
         char header[48];
@@ -703,6 +714,10 @@ static void reader_viewport_draw_callback(Canvas* canvas, void* context) {
                  (unsigned)app->selected_chapter,
                  (unsigned)app->selected_verse);
         canvas_draw_str(canvas, READER_LEFT_MARGIN, 10, header);
+        if(bookmark_manager_is_bookmarked(&app->bookmarks, app->selected_book_index,
+                app->selected_chapter, app->selected_verse)) {
+            canvas_draw_str(canvas, 70, 10, "(BM)");
+        }
     }
     
     /* Separator below header; content is strictly below this */
@@ -754,6 +769,10 @@ static void reader_viewport_input_callback(InputEvent* event, void* context) {
         } else if(app->view_dispatcher) {
             view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_NEXT_VERSE);
         }
+        break;
+    case InputKeyOk:
+        if(app->view_dispatcher)
+            view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_TOGGLE_BM);
         break;
     case InputKeyLeft:
         if(app->view_dispatcher)
@@ -836,6 +855,22 @@ static bool catholic_bible_scene_reader_on_event(void* context, SceneManagerEven
             }
             return true;
         }
+        if(event.event == READER_EVT_TOGGLE_BM) {
+            int idx = bookmark_manager_find(&app->bookmarks, app->selected_book_index,
+                    app->selected_chapter, app->selected_verse);
+            if(idx >= 0) {
+                bookmark_manager_delete(&app->bookmarks, (size_t)idx);
+            } else {
+                char name[BOOKMARK_NAME_MAX_LEN];
+                const char* book = cb_book_name(app->selected_book_index);
+                snprintf(name, sizeof(name), "%s %u:%u", book ? book : "?", 
+                         (unsigned)app->selected_chapter, (unsigned)app->selected_verse);
+                bookmark_manager_add(&app->bookmarks, app->selected_book_index,
+                        app->selected_chapter, app->selected_verse, name);
+            }
+            view_port_update(app->reader_viewport);
+            return true;
+        }
     }
 
     return false;
@@ -848,6 +883,8 @@ static void catholic_bible_scene_reader_on_exit(void* context) {
     app->current_verse_text = NULL;
     app->scroll_offset = 0;
     app->reader_content_height = 0;
+    /* Persist history when leaving reader (Phase 4.2) */
+    history_manager_save(&app->history);
 }
 
 /* ============================================================================
@@ -858,11 +895,13 @@ static void catholic_bible_scene_search_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     widget_reset(app->widget);
-    widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "Search");
-    widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
-                              "Scaffold only.");
-    widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
-                              "Next: input + index.");
+    widget_add_string_element(app->widget, 4, 8, AlignLeft, AlignTop, FontPrimary, "Search");
+    widget_add_string_element(app->widget, 4, 22, AlignLeft, AlignTop, FontSecondary,
+                              "Phase 3: full-text search");
+    widget_add_string_element(app->widget, 4, 36, AlignLeft, AlignTop, FontSecondary,
+                              "requires index build");
+    widget_add_string_element(app->widget, 4, 50, AlignLeft, AlignTop, FontSecondary,
+                              "(tools). Coming soon.");
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
 }
@@ -886,11 +925,12 @@ static void catholic_bible_scene_about_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     widget_reset(app->widget);
-    widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "About");
-    widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
-                              "Flipper Catholic Bible");
-    widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
-                              "Browse: Books->Ch->Verses");
+    widget_add_string_element(app->widget, 4, 8, AlignLeft, AlignTop, FontPrimary, "Catholic Bible");
+    widget_add_string_element(app->widget, 4, 20, AlignLeft, AlignTop, FontSecondary, "Douay-Rheims, offline");
+    widget_add_string_element(app->widget, 4, 32, AlignLeft, AlignTop, FontSecondary,
+                              "Browse / Last read / BM / History");
+    widget_add_string_element(app->widget, 4, 44, AlignLeft, AlignTop, FontSecondary,
+                              "SD: /apps_data/bible/");
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
 }
@@ -907,79 +947,112 @@ static void catholic_bible_scene_about_on_exit(void* context) {
 }
 
 /* ============================================================================
- * Scene: Bookmarks (Phase 4.3)
+ * Scene: Bookmarks (Phase 4.3) - submenu, select opens reader
  * ==========================================================================*/
+
+#define BM_EVT_BASE 0xB0000000u
 
 static void catholic_bible_scene_bookmarks_on_enter(void* context) {
     CatholicBibleApp* app = context;
     
-    widget_reset(app->widget);
-    widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "Bookmarks");
+    submenu_reset(app->submenu);
+    submenu_set_header(app->submenu, "Bookmarks");
     
     size_t count = bookmark_manager_count(&app->bookmarks);
     if(count == 0) {
-        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
-                                  "No bookmarks yet.");
-        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
-                                  "Press OK in reader to bookmark.");
+        submenu_add_item(app->submenu, "(No bookmarks)", 0, catholic_bible_submenu_callback, app);
+        submenu_add_item(app->submenu, "OK in reader to add", 0xFF, catholic_bible_submenu_callback, app);
     } else {
-        char count_str[32];
-        snprintf(count_str, sizeof(count_str), "%zu bookmark(s)", count);
-        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary, count_str);
-        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
-                                  "Full list coming soon.");
+        for(size_t i = 0; i < count; i++) {
+            const Bookmark* b = bookmark_manager_get(&app->bookmarks, i);
+            if(b && b->valid) {
+                const char* label = (b->name[0] != '\0') ? b->name : "?";
+                submenu_add_item(app->submenu, label, (uint32_t)(BM_EVT_BASE | i), catholic_bible_submenu_callback, app);
+            }
+        }
     }
     
-    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
 }
 
 static bool catholic_bible_scene_bookmarks_on_event(void* context, SceneManagerEvent event) {
-    (void)context;
-    (void)event;
+    CatholicBibleApp* app = context;
+    
+    if(event.type == SceneManagerEventTypeCustom && (event.event & 0xB0000000u) == BM_EVT_BASE) {
+        size_t index = (size_t)(event.event & 0xFFu);
+        if(index >= bookmark_manager_count(&app->bookmarks)) return true;
+        const Bookmark* b = bookmark_manager_get(&app->bookmarks, index);
+        if(b && b->valid) {
+            app->selected_book_index = b->book_index;
+            app->selected_chapter = b->chapter;
+            app->selected_verse = b->verse;
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneReader);
+        }
+        return true;
+    }
+    
     return false;
 }
 
 static void catholic_bible_scene_bookmarks_on_exit(void* context) {
     CatholicBibleApp* app = context;
-    widget_reset(app->widget);
+    submenu_reset(app->submenu);
 }
 
 /* ============================================================================
- * Scene: History (Phase 4.3)
+ * Scene: History (Phase 4.3) - submenu, select opens reader
  * ==========================================================================*/
+
+#define HIST_EVT_BASE 0xD0000000u
 
 static void catholic_bible_scene_history_on_enter(void* context) {
     CatholicBibleApp* app = context;
     
-    widget_reset(app->widget);
-    widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "History");
+    submenu_reset(app->submenu);
+    submenu_set_header(app->submenu, "Recent");
     
     size_t count = history_manager_count(&app->history);
     if(count == 0) {
-        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
-                                  "No history yet.");
-        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
-                                  "Start reading to build history.");
+        submenu_add_item(app->submenu, "(No history yet)", 0, catholic_bible_submenu_callback, app);
+        submenu_add_item(app->submenu, "Read to build history", 0xFF, catholic_bible_submenu_callback, app);
     } else {
-        char count_str[32];
-        snprintf(count_str, sizeof(count_str), "%zu recent verse(s)", count);
-        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary, count_str);
-        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
-                                  "Full list coming soon.");
+        for(size_t i = 0; i < count; i++) {
+            const HistoryEntry* e = history_manager_get_entry(&app->history, i);
+            if(e && e->valid) {
+                char label[32];
+                const char* book = cb_book_name(e->book_index);
+                snprintf(label, sizeof(label), "%s %u:%u", book ? book : "?", 
+                         (unsigned)e->chapter, (unsigned)e->verse);
+                submenu_add_item(app->submenu, label, (uint32_t)(HIST_EVT_BASE | i), catholic_bible_submenu_callback, app);
+            }
+        }
     }
     
-    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
 }
 
 static bool catholic_bible_scene_history_on_event(void* context, SceneManagerEvent event) {
-    (void)context;
-    (void)event;
+    CatholicBibleApp* app = context;
+    
+    if(event.type == SceneManagerEventTypeCustom && (event.event & 0xD0000000u) == HIST_EVT_BASE) {
+        size_t index = (size_t)(event.event & 0xFFu);
+        if(index >= history_manager_count(&app->history)) return true;
+        const HistoryEntry* e = history_manager_get_entry(&app->history, index);
+        if(e && e->valid) {
+            app->selected_book_index = e->book_index;
+            app->selected_chapter = e->chapter;
+            app->selected_verse = e->verse;
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneReader);
+        }
+        return true;
+    }
+    
     return false;
 }
 
 static void catholic_bible_scene_history_on_exit(void* context) {
     CatholicBibleApp* app = context;
-    widget_reset(app->widget);
+    submenu_reset(app->submenu);
 }
 
 /* ============================================================================

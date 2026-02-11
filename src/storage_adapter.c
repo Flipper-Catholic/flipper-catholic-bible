@@ -374,12 +374,7 @@ static bool storage_adapter_check_assets_exist(StorageAdapter* adapter) {
     stream_free(test_stream);
     furi_record_close(RECORD_STORAGE);
     
-    if(!all_exist) {
-        return false;
-    }
-    
-    furi_record_close(RECORD_STORAGE);
-    return true;
+    return all_exist;
 }
 
 /* Internal helper: Read verse index header */

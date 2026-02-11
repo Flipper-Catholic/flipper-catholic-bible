@@ -10,13 +10,13 @@
 
 The project has made significant progress with core infrastructure complete and reader fully functional. **Major milestones achieved:**
 
-1. ✅ **Reader view** – ViewPort-only (fixes blank screen), infinite scroll, single-spaced full-width text, compact header/divider
+1. ✅ **Reader view** – ViewPort-only, infinite scroll, single-spaced full-width text; OK = toggle bookmark (header shows "(BM)")
 2. ✅ **Verse count data** – Genesis complete (Phase 1.3)
-3. ✅ **SD card storage adapter** – Complete; app loads verses from SD when present (Phase 2.2)
+3. ✅ **SD card storage adapter** – Complete; lazy index load; verse text from SD (Phase 2.2, 2.3)
 4. ✅ **Asset build tool** – `tools/build_bible_assets.py` + Genesis 1–2 source JSON (Phase 2.1 partial)
-5. ✅ **Bookmarks & History** – Fully functional (Phase 4)
-6. ✅ **Navigation** – Back button exits Verses/Chapters/Books via submenu previous callback
-7. ✅ **Custom app icon** – Cross icon (fap_icon); app installs under Apps → Tools
+5. ✅ **Bookmarks & History** – Full UI: Last read menu, OK=bookmark, Bookmarks/History submenus open reader (Phase 4)
+6. ✅ **Navigation** – Back exits reader and returns from Verses/Chapters/Books
+7. ✅ **Custom app icon** – Cross icon; app under Apps → Tools
 8. ✅ **Phase 6 devotional features** – UI stubbed (Missal, Rosary, Prayers, Confession)
 
 **Current Completion:** ~45-55% of planned features  
@@ -64,8 +64,8 @@ The project has made significant progress with core infrastructure complete and 
 
 #### Phase 4: Bookmarks & History ✅ COMPLETE
 - ✅ **4.1 Bookmark Manager**: Full implementation with persistent storage
-- ✅ **4.2 History Manager**: Full implementation with last-read tracking
-- ✅ **4.3 UI Integration**: Menu items, scenes, automatic tracking
+- ✅ **4.2 History Manager**: Full implementation; history saved on reader exit; add-entry bug fix
+- ✅ **4.3 UI Integration**: "Last read" menu (jump to last verse or History); OK in reader = toggle bookmark; Bookmarks/History scenes = submenus, select opens reader
 
 **Status**: Phase 4 complete. Fully functional.
 
@@ -168,11 +168,9 @@ The project has made significant progress with core infrastructure complete and 
 - ✅ Defensive programming (NULL checks, bounds checking)
 
 ### Issues
-- ⚠️ Reader view implementation incomplete/broken
-- ⚠️ Hardcoded test data ("TEST" string in production code)
-- ⚠️ No error handling for edge cases
+- ⚠️ Error handling for missing/corrupt SD remains basic (Phase 5.1)
 - ⚠️ Limited test coverage (manual testing only)
-- ⚠️ LICENSE file has placeholder: `<YOUR NAME OR ORG>`
+- ⚠️ LICENSE: confirm copyright holder if not Gilbert Roberts
 
 ---
 
@@ -181,7 +179,7 @@ The project has made significant progress with core infrastructure complete and 
 **Current Branch:** `main`  
 **Uncommitted Changes:** See `git status` (this doc updated as part of housekeeping).
 
-**Recent work:** Reader layout (divider, single-space, full width), Back button fix (submenu previous callback), custom icon, asset build tool + Genesis 1–2 source, doc updates.
+**Recent work:** Phase 2.2/2.3 (storage adapter, reader integration), Phase 4 UI (Last read, OK=bookmark, Bookmarks/History submenus), history add-entry fix, storage double-close fix, About/Search scene text, doc and roadmap updates.
 
 ---
 
@@ -291,79 +289,46 @@ The project has made significant progress with core infrastructure complete and 
 
 ## Immediate Action Items
 
-### 🔴 Critical (Block Release)
-1. **Fix reader view blank screen**
-   - Debug View draw callback
-   - Test alternative rendering approaches
-   - Verify View lifecycle
+### 🟡 High Priority
+1. **Expand SD assets** – Add more books/chapters to `bible_source.json` or support other sources (Phase 2.1).
+2. **Phase 3 Search** – Index build tool, search engine, UI (when desired).
+3. **Error handling** (Phase 5.1) – Guided recovery for missing/corrupt SD; clearer messages.
 
-2. **Update LICENSE copyright**
-   - Replace `<YOUR NAME OR ORG>` with actual copyright holder
-
-3. **Update README**
-   - Add "Early Development" disclaimer
-   - Clarify current limitations (Genesis 1 only)
-   - Remove or mark as "Planned" features not yet implemented
-
-### 🟡 High Priority (Before Main Merge)
-4. **Complete verse count data** (Phase 1.3)
-   - Add verse count array
-   - Replace stub function
-
-5. **Commit current changes**
-   - Stage and commit roadmap.md and catholic_bible.c changes
-   - Write clear commit messages
-
-### 🟢 Medium Priority (Before Marketplace)
-6. **SD card asset pipeline** (Phase 2)
-   - Source Bible text
-   - Build asset tool
-   - Implement storage adapter
-
-7. **Error handling** (Phase 5.1)
-   - Missing SD card detection
-   - Graceful error messages
+### 🟢 Medium Priority
+4. **Verse counts** – Add data for remaining 72 books (Phase 1.3).
+5. **LICENSE** – Confirm copyright holder.
+6. **User guide** – Document asset setup for end users.
 
 ---
 
 ## Risk Assessment
 
-### High Risk
-- **Reader view bug** - Core feature completely broken
-- **No full Bible text** - App unusable for 99.95% of content
-- **No error handling** - Poor user experience, potential crashes
-
 ### Medium Risk
-- **Incomplete verse counts** - Navigation works but shows wrong counts
-- **Documentation mismatch** - README overstates capabilities
+- **No full Bible text** - Only Genesis 1–2 (56 verses with SD); expand assets for full canon
+- **Basic error handling** - Missing/corrupt SD has fallback but no guided recovery
+- **Incomplete verse counts** - Genesis complete; other books use placeholder
 
 ### Low Risk
-- **Missing advanced features** - Search, bookmarks can come later
-- **Performance** - Not yet optimized but not blocking
+- **Search not implemented** - Phase 3 placeholder; manual navigation works
+- **Performance** - Adequate for current content
 
 ---
 
 ## Conclusion
 
-**Current State:** The project has excellent documentation and architecture, but core functionality is incomplete and broken. The reader view bug prevents any meaningful use, and only 31 verses (0.01% of Bible) are available.
+**Current State:** Core reading, SD storage, bookmarks, and history are implemented and functional. Reader works with in-app Genesis 1:1-31 and SD assets (Genesis 1–2). Phase 2.2/2.3 and Phase 4 complete. Search (Phase 3) and full-Bible assets remain.
 
 **Recommendation:**
-1. **Fix reader view bug immediately** (P0 blocker)
-2. **Update documentation to reflect reality** (prevent user confusion)
-3. **Decide on merge strategy** (early dev vs. MVP completion)
-4. **Plan Phase 2 implementation** (SD card storage + full Bible text)
-
-**Timeline to Marketplace:**
-- **Minimum:** 3-4 weeks (fix bug + Phase 2 + basic error handling)
-- **Realistic:** 6-8 weeks (includes testing, polish, documentation)
+1. **Expand SD assets** for more books (Phase 2.1)
+2. **Phase 5.1** – Guided recovery and clearer error messages
+3. **Phase 3** – Search index and engine when desired
 
 **Next Steps:**
-1. Debug and fix reader view rendering
-2. Update README and LICENSE
-3. Commit current changes
-4. Plan Phase 2 implementation (asset pipeline)
+1. Device testing of Last read, Bookmarks, History flows
+2. Add more verse data to `bible_source.json` or integrate full Bible source
+3. Implement Phase 3 search (index build + engine) or Phase 5.1 error handling
 
 ---
 
-**Report Generated:** January 2025  
-**Next Review:** After reader view fix + Phase 2 planning
+**Report Generated:** January 2026  
+**Next Review:** After Phase 3 or Phase 5.1

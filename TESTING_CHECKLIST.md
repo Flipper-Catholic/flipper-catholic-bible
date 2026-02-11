@@ -143,10 +143,10 @@
 ## 3. Bookmarks Functionality
 
 ### 3.1 Bookmark Display
-- [ ] **TC-046**: Selecting "Bookmarks" from main menu opens bookmark scene
-- [ ] **TC-047**: Empty state displays: "No bookmarks yet."
-- [ ] **TC-048**: Empty state shows: "Press OK in reader to bookmark."
-- [ ] **TC-049**: With bookmarks, displays count: "X bookmark(s)"
+- [ ] **TC-046**: Selecting "Bookmarks" from main menu opens bookmark scene (submenu)
+- [ ] **TC-047**: Empty state displays: "(No bookmarks)" and "OK in reader to add"
+- [ ] **TC-048**: With bookmarks, list shows bookmark names; selecting one opens reader for that verse
+- [ ] **TC-049**: OK in reader toggles bookmark; header shows "(BM)" when bookmarked
 - [ ] **TC-050**: Back button returns to main menu
 
 **Expected Result:** Bookmark scene displays correctly
@@ -173,11 +173,11 @@
 ## 4. History Functionality
 
 ### 4.1 History Display
-- [ ] **TC-058**: Selecting "History" from main menu opens history scene
-- [ ] **TC-059**: Empty state displays: "No history yet."
-- [ ] **TC-060**: Empty state shows: "Start reading to build history."
-- [ ] **TC-061**: With history, displays count: "X recent verse(s)"
-- [ ] **TC-062**: Back button returns to main menu
+- [ ] **TC-058**: Selecting "History" from main menu opens history scene (submenu "Recent")
+- [ ] **TC-059**: Empty state: "(No history yet)" and "Read to build history"
+- [ ] **TC-060**: With history, list shows "Book Ch:V" entries; selecting one opens reader
+- [ ] **TC-061**: Back from History returns to main menu
+- [ ] **TC-062**: "Last read" menu: if has last-read verse, opens reader at that verse; else opens History scene
 
 **Expected Result:** History scene displays correctly
 

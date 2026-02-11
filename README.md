@@ -33,8 +33,8 @@ The design intentionally avoids commentary, notes, audio, or online features to 
 - **Sample Content**: Genesis 1:1-31 in-app; Genesis 1–2 (56 verses) via SD assets (see Adding Bible text)
 - **Verse Counts**: Accurate counts for Genesis (all 50 chapters)
 - **SD Card Storage**: Infrastructure complete (ready for asset files)
-- **Bookmarks**: Full bookmark management with persistent storage
-- **History**: Automatic history tracking and last-read verse
+- **Bookmarks**: Full bookmark management; OK in reader toggles bookmark; Bookmarks menu lists all, tap to open verse
+- **History**: Automatic history tracking and last-read verse; **Last read** menu item jumps to last verse; History menu lists recent verses, tap to open
 - **Devotional Features**: UI structure for Missal, Rosary, Prayers, Confession
 
 ### 🚧 In Progress
@@ -87,7 +87,8 @@ ufbt launch
 ```
 
 When installed as a FAP, the app appears under **Apps → Tools** and uses the custom cross icon.  
-**Reader controls:** Up/Down scroll within a verse; at top/bottom, Up/Down go to previous/next verse (infinite scroll). Left/Right also change verse. Back exits reader or returns from Verses/Chapters/Books to the previous screen.
+**Reader:** Up/Down scroll; at edges, Up/Down = previous/next verse. Left/Right change verse. **OK** = toggle bookmark (header shows "(BM)" when bookmarked). Back exits reader or returns from lists.  
+**Menu:** **Last read** opens the last-read verse (or History if none). **Bookmarks** and **History** show lists; select a verse to open it in the reader.
 
 > ⚠️ **Note**: Without SD assets, only Genesis 1:1-31 is available in-app. To add more verses (e.g. Genesis 1–2, or full Bible), see **Adding Bible text** below.
 
@@ -131,7 +132,7 @@ See [STATUS_REPORT.md](STATUS_REPORT.md) for detailed implementation status, kno
 **Current Completion:** ~45-55% of planned features  
 **Marketplace Readiness:** ⚠️ Beta/Early Access Ready (with disclaimers)  
 **Testing Status:** ✅ Ready for device testing  
-**Next Milestone:** Device testing complete; expand SD assets (full Genesis/Bible) and Phase 3 search
+**Next Milestone:** Expand SD assets (full Genesis/Bible); Phase 3 search (index + engine); Phase 5 error handling
 
 ---
 

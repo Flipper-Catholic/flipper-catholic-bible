@@ -174,19 +174,20 @@ void history_manager_add_entry(
         manager->count = HISTORY_MAX_ENTRIES - 1;
     }
     
-    // Add new entry at front
-    HistoryEntry* entry = &manager->entries[0];
-    entry->book_index = book_index;
-    entry->chapter = chapter;
-    entry->verse = verse;
-    entry->valid = true;
+    // New entry (stack) to insert at front
+    HistoryEntry new_entry = {
+        .book_index = book_index,
+        .chapter = chapter,
+        .verse = verse,
+        .valid = true,
+    };
     
     // Shift all entries right to make room
     for(size_t i = manager->count; i > 0; i--) {
         manager->entries[i] = manager->entries[i - 1];
     }
     
-    manager->entries[0] = *entry;
+    manager->entries[0] = new_entry;
     manager->count++;
     
     // Auto-save periodically (not on every add to avoid excessive writes)
