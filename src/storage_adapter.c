@@ -293,6 +293,25 @@ uint16_t storage_adapter_get_verse_count(
     return count;
 }
 
+/* Get (book_id, chapter, verse) from verse_id (0-based) */
+bool storage_adapter_get_ref_from_verse_id(
+    StorageAdapter* adapter,
+    uint32_t verse_id,
+    uint8_t* book_id,
+    uint16_t* chapter,
+    uint16_t* verse
+) {
+    if(!adapter || !book_id || !chapter || !verse) return false;
+    if(!adapter->assets_available) return false;
+    if(!adapter->index_cache && !storage_adapter_load_index(adapter)) return false;
+    if(verse_id >= adapter->index_cache_size) return false;
+    VerseIndexRecord* r = &adapter->index_cache[verse_id];
+    *book_id = r->book_id;
+    *chapter = r->chapter;
+    *verse = r->verse;
+    return true;
+}
+
 /* Get last error message */
 const char* storage_adapter_get_error(StorageAdapter* adapter) {
     if(!adapter) return "Adapter is NULL";

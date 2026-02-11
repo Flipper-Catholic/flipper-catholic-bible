@@ -18,9 +18,10 @@ The project has made significant progress with core infrastructure complete and 
 6. ✅ **Bookmarks & History** – Full UI: Last read menu, OK=bookmark, Bookmarks/History submenus open reader (Phase 4)
 7. ✅ **Navigation** – Back exits reader and returns from Verses/Chapters/Books
 8. ✅ **Custom app icon** – Cross icon; app under Apps → Tools
-9. ✅ **Phase 6 devotional features** – UI stubbed; single-file design (devotional.json) and placeholder (Missal, Rosary, Prayers, Confession)
+9. ✅ **Phase 6 devotional features** – Missal wired (loader + Today's Mass, Calendar, Mass Prayers/Responses, Readings); Prayers from devotional.bin; Rosary/Confession UI stubbed (build scripts + .bin ready)
+10. ✅ **Phase 7 Guides** – Top-level Guides menu with 7 items: Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments, Marrying Catholic (scaffold content; Sacraments and Marrying Catholic have full placeholder text)
 
-**Current Completion:** ~70% of planned features (core reading + full content + persistence done)  
+**Current Completion:** ~75% of planned features (core reading + full content + persistence + Missal + Guides scaffold)  
 **Marketplace Readiness:** ✅ **Catalog-ready** after adding screenshots + changelog (see roadmap)  
 **Testing Readiness:** ✅ **Ready for Device Testing**
 
@@ -70,13 +71,19 @@ The project has made significant progress with core infrastructure complete and 
 
 **Status**: Phase 4 complete. Fully functional.
 
-#### Phase 6: Catholic Devotional Features (Stubs) ✅ UI COMPLETE
-- ✅ **6.1 Missal**: Menu item and stub scene
-- ✅ **6.2 Rosary**: Menu item and stub scene
-- ✅ **6.3 Common Prayers**: Menu item and stub scene (15 prayers)
-- ✅ **6.4 Confession**: Menu item and stub scene
+#### Phase 6: Catholic Devotional Features ✅ PARTIAL
+- ✅ **6.1 Missal**: Loader (missal.bin), Today's Mass, Liturgical Calendar, Mass Prayers, Mass Responses, Browse Readings; Readings Search placeholder
+- ✅ **6.2 Rosary**: Menu and submenu (build + rosary.bin ready; loader/UI pending)
+- ✅ **6.3 Common Prayers**: devotional.bin + loader; list + PrayerView
+- ✅ **6.4 Confession**: Menu and submenu (build + confession.bin ready; loader/UI pending)
 
-**Status**: UI structure complete. Content implementation pending.
+**Status**: Missal and Prayers fully wired; Rosary and Confession data built, UI scaffold.
+
+#### Phase 7: Guides ✅ SCAFFOLD
+- ✅ **Guides** top-level menu; submenu: Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments Guide, Marrying Catholic
+- ✅ Scrollable guide view with placeholder content; Sacraments and Marrying Catholic have full scaffold text
+
+**Status**: Full scaffolding; future .bin loaders can replace placeholders.
 
 ---
 
@@ -126,13 +133,14 @@ The project has made significant progress with core infrastructure complete and 
 |---------|--------|------------|-------|
 | **Navigation** | ✅ | 100% | Fully functional |
 | **Reader View** | ✅ | 100% | ViewPort rendering fixed |
-| **Text Loading** | ⚠️ | 0.01% | Only Genesis 1:1-31 (infrastructure ready) |
-| **SD Card Storage** | ✅ | 100% | Infrastructure complete, needs assets |
+| **Text Loading** | ✅ | 100% | Full Bible (34,827 verses) bundled; optional SD override |
+| **SD Card Storage** | ✅ | 100% | Infrastructure complete; bundled assets in FAP |
 | **Search** | ❌ | 0% | Placeholder only (Phase 3) |
 | **Bookmarks** | ✅ | 100% | Fully functional |
 | **History** | ✅ | 100% | Fully functional |
 | **Error Recovery** | ⚠️ | 50% | Basic handling, needs enhancement |
-| **Phase 6 Features** | ✅ | 20% | UI complete, content pending |
+| **Phase 6 Features** | ✅ | 70% | Missal + Prayers wired; Rosary/Confession data ready |
+| **Phase 7 Guides** | ✅ | 100% | Scaffold complete (7 guides, Sacraments/Marrying Catholic content) |
 
 ---
 

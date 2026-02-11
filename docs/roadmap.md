@@ -46,12 +46,12 @@ This roadmap maps the features described in the documentation to implementation 
 
 **Status**: Complete. Genesis 1–2 (56 verses) available with SD assets; 31 verses in-app only.
 
-### 1.3 Verse Count Data ✅ (Genesis)
-- [x] Verse count array in `books_meta.c` for Genesis (all 50 chapters)
-- [x] Browse Verses shows accurate counts for Genesis; others use placeholder
+### 1.3 Verse Count Data ✅
+- [x] Verse count array in `books_meta.c` for all 73 books (from bible_source.json)
+- [x] `tools/export_verse_counts.py` generates C array; Browse Verses shows accurate counts
 
 **Dependencies**: 1.2  
-**Remaining**: Add verse counts for remaining 72 books (data entry).
+**Status**: Complete.
 
 **Phase 1 Acceptance Criteria**:
 - User can browse to any verse and see actual text
@@ -103,30 +103,25 @@ This roadmap maps the features described in the documentation to implementation 
 
 **Goal**: Enable indexed full-text search across all verses.
 
-### 3.1 Search Index Build
-- [ ] Extend asset build tool to create search index
-- [ ] Implement tokenization (normalize, lowercase, strip punctuation)
-- [ ] Build inverted index (token → VerseID lists)
-- [ ] Implement sharding (2-char prefix → shard mapping)
-- [ ] Generate `shard_map.bin` and `shards/shard_*.bin`
-- [ ] Update `metadata.json` with search index metadata
+### 3.1 Search Index Build ✅
+- [x] `tools/build_search_index.py` – tokenize from bible_source.json, sharded inverted index
+- [x] Sharding by 2-char prefix; `search_shard_map.bin` + `search_shards/shard_*.bin`
 
 **Dependencies**: 2.1  
-**Priority**: Medium (nice-to-have feature)  
-**Estimated Complexity**: High (indexing algorithms)
+**Status**: Complete.
 
-### 3.2 Search UI
-- [ ] Replace placeholder Search scene with TextInput view
-- [ ] Implement on-screen keyboard input handling
-- [ ] Add search query validation and normalization
-- [ ] Create search results scene/view
-- [ ] Add search history/previous queries
+### 3.2 Search UI ✅
+- [x] Search scene uses TextInput when index available; SearchResults submenu; tap opens reader
 
 **Dependencies**: None (UI only)  
-**Priority**: Medium  
-**Estimated Complexity**: Low-Medium
+**Status**: Complete.
 
-### 3.3 Search Engine
+### 3.3 Search Engine ✅
+- [x] `search_adapter.c`: load shard by prefix, token lookup (prefix match), return verse_ids; `storage_adapter_get_ref_from_verse_id` for refs
+
+**Status**: Complete.
+
+### 3.3 (legacy) Search Engine (detail)
 - [ ] Implement Search Engine module (`search_engine.c/h`)
 - [ ] Load only required shards (lazy loading)
 - [ ] Implement prefix matching
@@ -333,9 +328,9 @@ Requirements from [Contributing Guide](https://github.com/flipperdevices/flipper
 - [ ] **manifest.yml** – Create and submit via PR to `flipperdevices/flipper-application-catalog` (applications/&lt;category&gt;/&lt;appid&gt;/manifest.yml); set `commit_sha` to this repo’s commit after changelog + screenshots are in.
 
 ### Priority order for next work (groomed)
-1. **P0 – Catalog readiness:** Add `changelog.md`; add app screenshots (qFlipper); optional: Phase 5.1 guided message when assets missing.
-2. **P1 – Optional polish:** Phase 5.1 error handling; Phase 1.3 verse counts for remaining 72 books.
-3. **P2 – Features:** Phase 3 Search; Phase 6 devotional content (Missal, Rosary, Prayers, Confession from devotional.json).
+- **Do first:** Phase 1.3 verse counts (72 books), then Phase 3 Search or Phase 6 devotional content.
+- **Do last:** App screenshots (qFlipper) → then submit `manifest.yml` to Apps Catalog (catalog PR). Keep screenshots until very end so they reflect final UI.
+- **Done:** changelog.md ✅; Phase 5.1 guided recovery ✅.
 
 ---
 
@@ -345,15 +340,14 @@ Requirements from [Contributing Guide](https://github.com/flipperdevices/flipper
 
 **Data design:** One combined asset for Missal, Rosary, Prayers, Confession; Missal is year-dependent (A/B/C lectionary). US source: [USCCB](https://www.usccb.org/). See **docs/devotional-data-design.md**.
 
-### 6.1 Roman Catholic Missal
-- [ ] Design missal data structure (readings, prayers, responses)
-- [ ] Implement liturgical calendar (seasons, feasts, ordinary time)
-- [ ] Add daily readings (Gospel, First Reading, Responsorial Psalm, Second Reading)
-- [ ] Add Mass prayers (Penitential Act, Gloria, Creed, etc.)
-- [ ] Add Mass responses (responses to priest, acclamations)
-- [ ] Implement date-based navigation (today's Mass, specific date)
-- [ ] Add liturgical year navigation (Advent, Christmas, Lent, Easter, Ordinary Time)
-- [ ] Support for multiple Mass forms (Ordinary Form, Extraordinary Form - if resources available)
+### 6.1 Roman Catholic Missal ✅ (wired)
+- [x] Design missal data structure (readings, prayers, responses) – missal.json → missal.bin
+- [x] Implement liturgical calendar (seasons); missal_loader
+- [x] Add daily readings (First Reading, Psalm, Gospel) – sample keys in data
+- [x] Add Mass prayers (Penitential Act, Gloria, Creed, etc.) and Mass responses
+- [x] Today's Mass, Browse by Date, Liturgical Calendar, Mass Prayers/Responses list+text views
+- [ ] Full date-based navigation / liturgical year (A/B/C) – future
+- [ ] Support for multiple Mass forms – future
 
 **Resources Needed**:
 - Official Roman Missal text (approved translations)
@@ -411,10 +405,11 @@ Requirements from [Contributing Guide](https://github.com/flipperdevices/flipper
 - Vatican-approved Rosary guides
 - Traditional Catholic sources (St. Louis de Montfort, etc.)
 
-### 6.3 Common Prayers Index
-- [ ] Implement prayer database structure
-- [ ] Add all common Catholic prayers with full text
-- [ ] Create prayer categories (Daily Prayers, Devotional Prayers, etc.)
+### 6.3 Common Prayers ✅ (initial)
+- [x] `devotional.json` + `tools/build_devotional.py` → `devotional.bin` (prayers: title + text)
+- [x] `devotional_loader.c`: load devotional.bin, get_prayer(index)
+- [x] Prayers scene: list from loader; tap opens PrayerView (TextBox with full text); Back to list
+- [ ] Expand devotional.json with more prayers; Missal/Rosary/Confession content (Phase 6.1, 6.2, 6.4)
 - [ ] Add prayer search functionality
 - [ ] Add prayer favorites/bookmarks
 - [ ] Add prayer context (when to pray, history, etc.)

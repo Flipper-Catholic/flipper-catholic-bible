@@ -33,13 +33,16 @@
 
 **Status**: Phase 4 complete. Bookmarks and history fully functional.
 
-#### Phase 6: Catholic Devotional Features (Stubs) ✅
-- ✅ **6.1 Missal**: Menu item and stub scene with submenu
-- ✅ **6.2 Rosary**: Menu item and stub scene with submenu
-- ✅ **6.3 Common Prayers**: Menu item and stub scene with 15 prayers
-- ✅ **6.4 Confession**: Menu item and stub scene with submenu
+#### Phase 6: Catholic Devotional Features ✅ Partial
+- ✅ **6.1 Missal**: Loader (missal.bin); Today's Mass, Liturgical Calendar, Mass Prayers/Responses, Browse Readings; list + text views
+- ✅ **6.2 Rosary**: Menu and submenu (rosary.bin + build ready; loader/UI pending)
+- ✅ **6.3 Common Prayers**: devotional.bin + loader; list + PrayerView
+- ✅ **6.4 Confession**: Menu and submenu (confession.bin + build ready; loader/UI pending)
 
-**Status**: UI structure complete. Content implementation pending.
+#### Phase 7: Guides ✅ Scaffold
+- ✅ **Guides** top-level menu; 7 items (Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments, Marrying Catholic); scrollable GuideView with placeholder/scaffold content
+
+**Status**: Missal and Prayers wired; Guides scaffold complete; Rosary/Confession data ready.
 
 ---
 

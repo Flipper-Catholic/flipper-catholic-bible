@@ -43,14 +43,15 @@ Before starting device testing, ensure:
 
 ---
 
-### 3. Phase 6 Features (3 min)
-1. From main menu, test each Phase 6 feature:
-   - Missal → Should show submenu → Select any option → Should show placeholder
-   - Rosary → Should show submenu → Select any option → Should show placeholder
-   - Prayers → Should show submenu → Select any prayer → Should show placeholder
-   - Confession → Should show submenu → Select any option → Should show placeholder
+### 3. Phase 6 & Guides (4 min)
+1. From main menu, test:
+   - **Missal** → Submenu → Today's Mass / Liturgical Calendar / Mass Prayers / Mass Responses / Browse by Date open list or text (missal.bin); Readings Search = "Coming soon"
+   - **Rosary** → Submenu → Select any option → Placeholder
+   - **Prayers** → List of prayers → Select one → Scrollable PrayerView (devotional.bin)
+   - **Confession** → Submenu → Select any option → Placeholder
+   - **Guides** → Submenu (Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments, Marrying Catholic) → Select any → Scrollable guide text
 
-**Expected:** All Phase 6 menus accessible, placeholders display correctly
+**Expected:** Missal and Prayers show content when .bin present; Guides show scaffold text; Rosary/Confession show placeholders
 
 ---
 
@@ -127,8 +128,8 @@ When reporting issues, include:
 - [ ] Error handling (missing SD card)
 
 ### Should Test (Before Release)
-- [ ] All menu navigation
-- [ ] Phase 6 feature stubs
+- [ ] All menu navigation (including Guides, Last read)
+- [ ] Phase 6 (Missal, Prayers, Rosary, Confession) and Phase 7 Guides
 - [ ] Boundary conditions
 - [ ] Extended use (10+ minutes)
 

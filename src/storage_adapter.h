@@ -113,6 +113,16 @@ uint16_t storage_adapter_get_verse_count(
     uint16_t chapter
 );
 
+/* Get (book_id, chapter, verse) from verse_id (0-based index in canonical order).
+ * Returns true on success. Loads index if needed. */
+bool storage_adapter_get_ref_from_verse_id(
+    StorageAdapter* adapter,
+    uint32_t verse_id,
+    uint8_t* book_id,
+    uint16_t* chapter,
+    uint16_t* verse
+);
+
 /* Get last error message */
 const char* storage_adapter_get_error(StorageAdapter* adapter);
 

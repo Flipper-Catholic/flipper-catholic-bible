@@ -61,6 +61,15 @@ This document defines how correctness, stability, and readiness are verified for
 - Recent history list updates correctly; History list opens verse on select; "Last read" menu jumps to last-read verse (or History if none)
 - Last-read verse available via "Last read" menu (restore on launch optional)
 
+### Phase 6 Devotional (Missal, Prayers)
+- Missal: Today's Mass, Liturgical Calendar, Mass Prayers, Mass Responses, Browse by Date open list/text views from missal.bin when present
+- Prayers: List from devotional.bin; selecting a prayer opens scrollable PrayerView
+- Rosary and Confession: Submenus present; placeholder or future loader content
+
+### Phase 7 Guides
+- Main menu includes "Guides"; selecting opens Guides submenu (Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments Guide, Marrying Catholic)
+- Selecting a guide opens scrollable GuideView with placeholder or loaded content; Back returns to Guides submenu
+
 ---
 
 ## Search Acceptance Criteria

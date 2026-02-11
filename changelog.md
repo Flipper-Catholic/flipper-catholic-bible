@@ -4,9 +4,17 @@ All notable changes to the Catholic Bible app for Flipper Zero.
 
 ---
 
+v0.4 (unreleased):
+- Phase 6.1 Missal: missal_loader + missal.bin; Today's Mass, Liturgical Calendar, Mass Prayers, Mass Responses, Browse by Date (readings); MissalList and MissalText scenes.
+- Phase 7 Guides: Top-level Guides menu with 7 items (Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments Guide, Marrying Catholic); GuideView with scaffold content; Sacraments and Marrying Catholic full placeholder text.
+- Refactor: DEVOTIONAL_DISPLAY_BUF_SIZE constant for display buffer.
+- Docs: phase6-phase7-plan (Sacraments & Marrying Catholic plans); README/STATUS/checklists updated.
+
 v0.3 (unreleased):
-- Phase 5.1: Try bundled FAP assets even when SD card is absent (no-SD devices can use full Bible).
-- Guided recovery: menu header shows "(No data: reinstall or add SD)" when no assets; verse placeholder suggests reinstall or SD path.
+- Phase 1.3: Verse counts for all 73 books (from bible_source.json via export_verse_counts.py).
+- Phase 3: Search – build_search_index.py (sharded index), search_adapter (lookup by token), TextInput + SearchResults scene; tap result opens reader.
+- Phase 5.1: Try bundled FAP assets even when SD card is absent; guided recovery message when no assets.
+- Phase 6.3: Common Prayers from devotional.bin (devotional.json + build_devotional.py); devotional_loader; Prayers list + PrayerView (TextBox).
 
 v0.2:
 - Full Douay-Rheims Bible (73 books, 34,827 verses) bundled in FAP; no manual SD copy required for full text.

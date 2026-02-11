@@ -16,7 +16,7 @@ This app turns the Flipper Zero into a portable Scripture reader:
 - 🔖 Bookmarks and recent history - ✅ **Implemented**
 - 💾 microSD-based content and updates - ✅ **Infrastructure Ready**
 - 📴 Fully offline, reverent, distraction-free - ✅ **Implemented**
-- ✝️ Catholic Devotional Features - ✅ **UI Complete** (Missal, Rosary, Prayers, Confession)
+- ✝️ Catholic Devotional Features - ✅ **UI Complete** (Missal, Rosary, Prayers, Confession, Guides)
 
 The design intentionally avoids commentary, notes, audio, or online features to keep focus on the text itself.
 
@@ -34,7 +34,7 @@ The design intentionally avoids commentary, notes, audio, or online features to 
 - **SD Card Storage**: Optional override; app works without SD
 - **Bookmarks**: Full bookmark management; OK in reader toggles bookmark; Bookmarks menu lists all, tap to open verse
 - **History**: Automatic history tracking and last-read verse; **Last read** menu item jumps to last verse; History menu lists recent verses, tap to open
-- **Devotional Features**: UI structure for Missal, Rosary, Prayers, Confession
+- **Devotional Features**: UI structure for Missal, Rosary, Prayers, Confession; **Guides** (Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments, Marrying Catholic) with scaffold content
 
 ### 🚧 Optional / In Progress
 - **Verse Counts**: Genesis complete; remaining 72 books use placeholder (Phase 1.3)

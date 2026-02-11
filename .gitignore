@@ -23,7 +23,7 @@ compile_commands.json
 dist/
 build/
 .ufbt/
-git status
+tools/verse_counts_generated.c
 cat >> .gitignore <<'EOF'
 
 # macOS

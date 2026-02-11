@@ -1,7 +1,7 @@
 # Catholic Bible App - Device Testing Checklist
 **Flipper Zero Application Testing**  
-**Version:** Pre-Release (Phase 1, 2.2, 4 Complete)  
-**Date:** January 2025
+**Version:** Pre-Release (Phase 1, 2, 4, 6.1, 7 Guides scaffold)  
+**Date:** January 2026
 
 ---
 
@@ -37,13 +37,15 @@
 ---
 
 ### 1.2 Main Menu Display
-- [ ] **TC-005**: Main menu displays all 9 menu items:
+- [ ] **TC-005**: Main menu displays all 11 menu items:
   - [ ] Browse
+  - [ ] Last read
   - [ ] Search
   - [ ] Missal
   - [ ] Rosary
   - [ ] Prayers
   - [ ] Confession
+  - [ ] Guides
   - [ ] Bookmarks
   - [ ] History
   - [ ] About
@@ -214,7 +216,7 @@
 
 ---
 
-## 5. Phase 6 Devotional Features (Stubs)
+## 5. Phase 6 Devotional & Phase 7 Guides
 
 ### 5.1 Missal Feature
 - [ ] **TC-076**: Selecting "Missal" from main menu opens Missal submenu
@@ -225,11 +227,13 @@
   - [ ] Mass Prayers
   - [ ] Mass Responses
   - [ ] Readings Search
-- [ ] **TC-078**: Selecting any option shows placeholder widget
-- [ ] **TC-079**: Placeholder shows: "Missal Feature - Coming soon. - Phase 6.1"
-- [ ] **TC-080**: Back button returns to main menu
+- [ ] **TC-078**: Today's Mass opens text view (first reading or "data not loaded" if no missal.bin)
+- [ ] **TC-079**: Liturgical Calendar / Mass Prayers / Mass Responses open list, then selecting an item opens text view (when missal.bin present)
+- [ ] **TC-080**: Browse by Date opens readings list; selecting a reading opens text view
+- [ ] **TC-081**: Readings Search shows "Coming soon" placeholder
+- [ ] **TC-082**: Back from text/list returns to Missal submenu, then to main menu
 
-**Expected Result:** Missal menu accessible, shows placeholder
+**Expected Result:** Missal menu functional with missal.bin; graceful message when absent
 
 **Notes:** _________________________________________________
 
@@ -274,11 +278,10 @@
   - [ ] Prayer Before Meals
   - [ ] Morning Offering
   - [ ] Evening Prayer
-- [ ] **TC-088**: Selecting any prayer shows placeholder widget
-- [ ] **TC-089**: Placeholder shows: "Prayer - Coming soon. - Phase 6.3"
-- [ ] **TC-090**: Back button returns to main menu
+- [ ] **TC-088**: Selecting any prayer opens scrollable PrayerView (from devotional.bin when present)
+- [ ] **TC-089**: Back from PrayerView returns to Prayers list, then to main menu
 
-**Expected Result:** Prayers menu accessible, shows placeholder
+**Expected Result:** Prayers menu shows list; selecting opens scrollable prayer text
 
 **Notes:** _________________________________________________
 
@@ -300,6 +303,19 @@
 - [ ] **TC-095**: Back button returns to main menu
 
 **Expected Result:** Confession menu accessible, shows placeholder
+
+**Notes:** _________________________________________________
+
+---
+
+### 5.5 Guides (Phase 7)
+- [ ] **TC-G01**: Selecting "Guides" from main menu opens Guides submenu
+- [ ] **TC-G02**: Submenu displays: Order of Mass, OCIA Guide, Lenten Guide, Easter Guide, Pentecost Guide, Sacraments Guide, Marrying Catholic
+- [ ] **TC-G03**: Selecting any guide opens scrollable text view (placeholder or future .bin content)
+- [ ] **TC-G04**: Sacraments Guide shows seven sacraments and groupings; Marrying Catholic shows marriage/preparation/audiences
+- [ ] **TC-G05**: Back from guide view returns to Guides submenu, then to main menu
+
+**Expected Result:** Guides menu and all 7 items open scrollable content
 
 **Notes:** _________________________________________________
 

@@ -11,8 +11,12 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 #include <gui/modules/text_box.h>
+#include <gui/modules/text_input.h>
 
 #include <furi_hal_resources.h>
+#include "search_adapter.h"
+#include "devotional_loader.h"
+#include "missal_loader.h"
 #include <string.h>
 
 #include "books_meta.h"
@@ -21,6 +25,7 @@
 #include "history_manager.h"
 
 #define CHAPTERS_PER_PAGE 40
+#define DEVOTIONAL_DISPLAY_BUF_SIZE 2048
 
 #define CH_EVT_PREV_PAGE     0xF0000001u
 #define CH_EVT_NEXT_PAGE     0xF0000002u
@@ -143,6 +148,7 @@ typedef enum {
     CatholicBibleViewSubmenu = 0,
     CatholicBibleViewWidget,
     CatholicBibleViewTextBox,
+    CatholicBibleViewTextInput,
     CatholicBibleViewReader,
 } CatholicBibleViewId;
 
@@ -153,10 +159,16 @@ typedef enum {
     CatholicBibleSceneBrowseVerses,
     CatholicBibleSceneReader,
     CatholicBibleSceneSearch,
+    CatholicBibleSceneSearchResults,
+    CatholicBibleScenePrayerView,
     CatholicBibleSceneMissal,
+    CatholicBibleSceneMissalList,
+    CatholicBibleSceneMissalText,
     CatholicBibleSceneRosary,
     CatholicBibleScenePrayers,
     CatholicBibleSceneConfession,
+    CatholicBibleSceneGuides,
+    CatholicBibleSceneGuideView,
     CatholicBibleSceneBookmarks,
     CatholicBibleSceneHistory,
     CatholicBibleSceneAbout,
@@ -171,6 +183,7 @@ typedef enum {
     MenuItemRosary,
     MenuItemPrayers,
     MenuItemConfession,
+    MenuItemGuides,
     MenuItemBookmarks,
     MenuItemHistory,
     MenuItemAbout,
@@ -184,6 +197,7 @@ typedef struct {
     Submenu* submenu;
     Widget* widget;
     TextBox* text_box;
+    TextInput* text_input;
     ViewPort* reader_viewport; // Reader: added to GUI in reader scene only
 
     // Browse state
@@ -200,6 +214,20 @@ typedef struct {
     
     // Storage adapter (Phase 2.2)
     StorageAdapter storage;
+    // Search (Phase 3)
+    SearchAdapter search;
+    uint32_t search_result_ids[SEARCH_MAX_RESULTS];
+    size_t search_result_count;
+    char search_query_buf[SEARCH_MAX_QUERY_LEN];
+    // Devotional (Phase 6)
+    DevotionalLoader devotional;
+    uint16_t selected_prayer_index;
+    char prayer_text_buf[DEVOTIONAL_MAX_TEXT];
+    MissalLoader missal;
+    uint8_t missal_list_type;  /* 0=seasons, 1=mass_prayers, 2=mass_responses, 3=readings */
+    uint16_t missal_selected_idx;
+    char devotional_display_buf[DEVOTIONAL_DISPLAY_BUF_SIZE];
+    uint8_t selected_guide_id;  /* 0=Order of Mass, 1=OCIA, 2=Lenten, 3=Easter, 4=Pentecost, 5=Sacraments, 6=Marrying Catholic */
     
     // Bookmark and history managers (Phase 4)
     BookmarkManager bookmarks;
@@ -326,6 +354,7 @@ static void catholic_bible_scene_menu_on_enter(void* context) {
     submenu_add_item(app->submenu, "Rosary", MenuItemRosary, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "Prayers", MenuItemPrayers, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "Confession", MenuItemConfession, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "Guides", MenuItemGuides, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "Bookmarks", MenuItemBookmarks, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "History", MenuItemHistory, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "About", MenuItemAbout, catholic_bible_submenu_callback, app);
@@ -363,6 +392,9 @@ static bool catholic_bible_scene_menu_on_event(void* context, SceneManagerEvent 
             return true;
         case MenuItemConfession:
             scene_manager_next_scene(app->scene_manager, CatholicBibleSceneConfession);
+            return true;
+        case MenuItemGuides:
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneGuides);
             return true;
         case MenuItemBookmarks:
             scene_manager_next_scene(app->scene_manager, CatholicBibleSceneBookmarks);
@@ -893,23 +925,41 @@ static void catholic_bible_scene_reader_on_exit(void* context) {
     history_manager_save(&app->history);
 }
 
-/* ============================================================================
- * Scene: Search (placeholder)
- * ==========================================================================*/
+/* Search: text input callback – run search and go to results */
+static void catholic_bible_search_done_callback(void* context, const char* result) {
+    CatholicBibleApp* app = context;
+    if(!result) return;
+    strncpy(app->search_query_buf, result, SEARCH_MAX_QUERY_LEN - 1);
+    app->search_query_buf[SEARCH_MAX_QUERY_LEN - 1] = '\0';
+    app->search_result_count = 0;
+    if(search_adapter_available(&app->search)) {
+        app->search_result_count = search_adapter_lookup(
+            &app->search, app->search_query_buf,
+            app->search_result_ids, SEARCH_MAX_RESULTS);
+    }
+    scene_manager_next_scene(app->scene_manager, CatholicBibleSceneSearchResults);
+}
 
+/* Scene: Search – show text input when index available */
 static void catholic_bible_scene_search_on_enter(void* context) {
     CatholicBibleApp* app = context;
-
-    widget_reset(app->widget);
-    widget_add_string_element(app->widget, 4, 8, AlignLeft, AlignTop, FontPrimary, "Search");
-    widget_add_string_element(app->widget, 4, 22, AlignLeft, AlignTop, FontSecondary,
-                              "Phase 3: full-text search");
-    widget_add_string_element(app->widget, 4, 36, AlignLeft, AlignTop, FontSecondary,
-                              "requires index build");
-    widget_add_string_element(app->widget, 4, 50, AlignLeft, AlignTop, FontSecondary,
-                              "(tools). Coming soon.");
-
-    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
+    if(search_adapter_available(&app->search)) {
+        text_input_set_header_text(app->text_input, "Search word");
+        text_input_set_result_callback(app->text_input, catholic_bible_search_done_callback, app);
+        text_input_set_minimum_length(app->text_input, 2);
+        text_input_reset(app->text_input);
+        view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewTextInput);
+    } else {
+        widget_reset(app->widget);
+        widget_add_string_element(app->widget, 4, 8, AlignLeft, AlignTop, FontPrimary, "Search");
+        widget_add_string_element(app->widget, 4, 22, AlignLeft, AlignTop, FontSecondary,
+                                  "Search index not found.");
+        widget_add_string_element(app->widget, 4, 36, AlignLeft, AlignTop, FontSecondary,
+                                  "Rebuild FAP with search");
+        widget_add_string_element(app->widget, 4, 50, AlignLeft, AlignTop, FontSecondary,
+                                  "index (build_search_index).");
+        view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
+    }
 }
 
 static bool catholic_bible_scene_search_on_event(void* context, SceneManagerEvent event) {
@@ -919,8 +969,54 @@ static bool catholic_bible_scene_search_on_event(void* context, SceneManagerEven
 }
 
 static void catholic_bible_scene_search_on_exit(void* context) {
+    (void)context;
+}
+
+/* Scene: Search results – submenu of verses, tap opens reader */
+static void catholic_bible_scene_search_results_on_enter(void* context) {
     CatholicBibleApp* app = context;
-    widget_reset(app->widget);
+    submenu_reset(app->submenu);
+    submenu_set_header(app->submenu, "Search results");
+    if(app->search_result_count == 0) {
+        submenu_add_item(app->submenu, "(no results)", 0, catholic_bible_submenu_callback, app);
+    } else {
+        for(size_t i = 0; i < app->search_result_count; i++) {
+            uint8_t book_id;
+            uint16_t ch, verse;
+            if(storage_adapter_get_ref_from_verse_id(&app->storage, app->search_result_ids[i],
+                                                     &book_id, &ch, &verse)) {
+                const char* name = (book_id < CATHOLIC_BIBLE_BOOKS_COUNT)
+                    ? catholic_bible_book_names[book_id] : "?";
+                static char label[48];
+                snprintf(label, sizeof(label), "%s %u:%u", name, (unsigned)ch, (unsigned)verse);
+                submenu_add_item(app->submenu, label, (uint32_t)i, catholic_bible_submenu_callback, app);
+            }
+        }
+    }
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
+}
+
+static bool catholic_bible_scene_search_results_on_event(void* context, SceneManagerEvent event) {
+    CatholicBibleApp* app = context;
+    if(event.type != SceneManagerEventTypeCustom) return false;
+    if(app->search_result_count == 0) return true;
+    uint32_t idx = event.event;
+    if(idx >= app->search_result_count) return true;
+    uint32_t verse_id = app->search_result_ids[idx];
+    uint8_t book_id;
+    uint16_t ch, verse;
+    if(!storage_adapter_get_ref_from_verse_id(&app->storage, verse_id, &book_id, &ch, &verse))
+        return true;
+    app->selected_book_index = book_id;
+    app->selected_chapter = ch;
+    app->selected_verse = verse;
+    scene_manager_next_scene(app->scene_manager, CatholicBibleSceneReader);
+    return true;
+}
+
+static void catholic_bible_scene_search_results_on_exit(void* context) {
+    CatholicBibleApp* app = context;
+    submenu_reset(app->submenu);
 }
 
 /* ============================================================================
@@ -1085,19 +1181,34 @@ static void catholic_bible_scene_missal_on_enter(void* context) {
 static bool catholic_bible_scene_missal_on_event(void* context, SceneManagerEvent event) {
     CatholicBibleApp* app = context;
     
-    if(event.type == SceneManagerEventTypeCustom) {
-        // Placeholder: Will navigate to specific Missal features
-        // For now, show placeholder widget
+    if(event.type != SceneManagerEventTypeCustom) return false;
+    
+    uint32_t sel = event.event;
+    if(!app->missal.loaded) {
+        snprintf(app->devotional_display_buf, sizeof(app->devotional_display_buf),
+                 "Missal data not loaded.\nPlace missal.bin in the same folder as the Bible index.");
+        scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalText);
+        return true;
+    }
+    if(sel == 0) {
+        /* Today's Mass: show first reading as sample */
+        if(missal_loader_get_reading(&app->missal, 0, NULL, 0, NULL, 0,
+                                     app->devotional_display_buf, sizeof(app->devotional_display_buf))) {
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalText);
+        }
+        return true;
+    }
+    if(sel == 1) { app->missal_list_type = 3; scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalList); return true; }
+    if(sel == 2) { app->missal_list_type = 0; scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalList); return true; }
+    if(sel == 3) { app->missal_list_type = 1; scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalList); return true; }
+    if(sel == 4) { app->missal_list_type = 2; scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalList); return true; }
+    if(sel == 5) {
         widget_reset(app->widget);
-        widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "Missal Feature");
-        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
-                                  "Coming soon.");
-        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
-                                  "Phase 6.1");
+        widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "Readings Search");
+        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary, "Coming soon.");
         view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
         return true;
     }
-    
     return false;
 }
 
@@ -1105,6 +1216,111 @@ static void catholic_bible_scene_missal_on_exit(void* context) {
     CatholicBibleApp* app = context;
     submenu_reset(app->submenu);
     widget_reset(app->widget);
+}
+
+/* Scene: Missal list (seasons / mass prayers / mass responses / readings) */
+static void catholic_bible_scene_missal_list_on_enter(void* context) {
+    CatholicBibleApp* app = context;
+    submenu_reset(app->submenu);
+    char title[MISSAL_MAX_TITLE];
+    if(!app->missal.loaded) {
+        submenu_set_header(app->submenu, "Missal");
+        submenu_add_item(app->submenu, "(Data not loaded)", 0, catholic_bible_submenu_callback, app);
+        view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
+        return;
+    }
+    switch(app->missal_list_type) {
+    case 0:
+        submenu_set_header(app->submenu, "Liturgical Calendar");
+        for(uint16_t i = 0; i < app->missal.num_seasons; i++) {
+            if(missal_loader_get_season(&app->missal, i, title, sizeof(title), NULL, 0))
+                submenu_add_item(app->submenu, title, (uint32_t)i, catholic_bible_submenu_callback, app);
+        }
+        break;
+    case 1:
+        submenu_set_header(app->submenu, "Mass Prayers");
+        for(uint16_t i = 0; i < app->missal.num_mass_prayers; i++) {
+            if(missal_loader_get_mass_prayer(&app->missal, i, title, sizeof(title), NULL, 0))
+                submenu_add_item(app->submenu, title, (uint32_t)i, catholic_bible_submenu_callback, app);
+        }
+        break;
+    case 2:
+        submenu_set_header(app->submenu, "Mass Responses");
+        for(uint16_t i = 0; i < app->missal.num_mass_responses; i++) {
+            if(missal_loader_get_mass_response(&app->missal, i, title, sizeof(title), NULL, 0))
+                submenu_add_item(app->submenu, title, (uint32_t)i, catholic_bible_submenu_callback, app);
+        }
+        break;
+    case 3:
+        submenu_set_header(app->submenu, "Readings by Date");
+        for(uint16_t i = 0; i < app->missal.num_readings; i++) {
+            if(missal_loader_get_reading(&app->missal, i, NULL, 0, title, sizeof(title), NULL, 0))
+                submenu_add_item(app->submenu, title, (uint32_t)i, catholic_bible_submenu_callback, app);
+        }
+        break;
+    default:
+        submenu_set_header(app->submenu, "Missal");
+        submenu_add_item(app->submenu, "(Empty)", 0, catholic_bible_submenu_callback, app);
+        break;
+    }
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
+}
+
+static bool catholic_bible_scene_missal_list_on_event(void* context, SceneManagerEvent event) {
+    CatholicBibleApp* app = context;
+    if(event.type != SceneManagerEventTypeCustom || !app->missal.loaded) return false;
+    uint16_t idx = (uint16_t)event.event;
+    switch(app->missal_list_type) {
+    case 0:
+        if(idx >= app->missal.num_seasons) return true;
+        if(missal_loader_get_season(&app->missal, idx, NULL, 0, app->devotional_display_buf, sizeof(app->devotional_display_buf)))
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalText);
+        break;
+    case 1:
+        if(idx >= app->missal.num_mass_prayers) return true;
+        if(missal_loader_get_mass_prayer(&app->missal, idx, NULL, 0, app->devotional_display_buf, sizeof(app->devotional_display_buf)))
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalText);
+        break;
+    case 2:
+        if(idx >= app->missal.num_mass_responses) return true;
+        if(missal_loader_get_mass_response(&app->missal, idx, NULL, 0, app->devotional_display_buf, sizeof(app->devotional_display_buf)))
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalText);
+        break;
+    case 3:
+        if(idx >= app->missal.num_readings) return true;
+        if(missal_loader_get_reading(&app->missal, idx, NULL, 0, NULL, 0, app->devotional_display_buf, sizeof(app->devotional_display_buf)))
+            scene_manager_next_scene(app->scene_manager, CatholicBibleSceneMissalText);
+        break;
+    default:
+        break;
+    }
+    return true;
+}
+
+static void catholic_bible_scene_missal_list_on_exit(void* context) {
+    CatholicBibleApp* app = context;
+    (void)app;
+    submenu_reset(app->submenu);
+}
+
+/* Scene: Missal text view (one season/prayer/response/reading) */
+static void catholic_bible_scene_missal_text_on_enter(void* context) {
+    CatholicBibleApp* app = context;
+    text_box_set_text(app->text_box, app->devotional_display_buf);
+    text_box_set_focus(app->text_box, TextBoxFocusStart);
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewTextBox);
+}
+
+static bool catholic_bible_scene_missal_text_on_event(void* context, SceneManagerEvent event) {
+    (void)context;
+    (void)event;
+    return false;
+}
+
+static void catholic_bible_scene_missal_text_on_exit(void* context) {
+    CatholicBibleApp* app = context;
+    text_box_reset(app->text_box);
+    (void)app;
 }
 
 /* ============================================================================
@@ -1155,57 +1371,69 @@ static void catholic_bible_scene_rosary_on_exit(void* context) {
 }
 
 /* ============================================================================
- * Scene: Common Prayers (Phase 6.3)
+ * Scene: Common Prayers (Phase 6.3) – from devotional.bin when available
  * ==========================================================================*/
 
 static void catholic_bible_scene_prayers_on_enter(void* context) {
     CatholicBibleApp* app = context;
-    
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Common Prayers");
-    
-    // Submenu with all common prayers
-    submenu_add_item(app->submenu, "Sign of the Cross", 0, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Prayer of Holy Spirit", 1, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Act of Contrition", 2, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Lord's Prayer", 3, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Hail Mary", 4, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Glory Be", 5, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Guardian Angel", 6, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Hail Holy Queen", 7, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Memorare", 8, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "St. Francis Prayer", 9, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "St. Michael Prayer", 10, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Apostles' Creed", 11, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Prayer Before Meals", 12, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Morning Offering", 13, catholic_bible_submenu_callback, app);
-    submenu_add_item(app->submenu, "Evening Prayer", 14, catholic_bible_submenu_callback, app);
-    
+    uint16_t n = devotional_loader_prayer_count(&app->devotional);
+    if(n > 0) {
+        char title[DEVOTIONAL_MAX_TITLE];
+        for(uint16_t i = 0; i < n; i++) {
+            if(devotional_loader_get_prayer(&app->devotional, i, title, sizeof(title), NULL, 0))
+                submenu_add_item(app->submenu, title, (uint32_t)i, catholic_bible_submenu_callback, app);
+        }
+    } else {
+        submenu_add_item(app->submenu, "(No devotional.bin)", 0, catholic_bible_submenu_callback, app);
+    }
     view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
 }
 
 static bool catholic_bible_scene_prayers_on_event(void* context, SceneManagerEvent event) {
     CatholicBibleApp* app = context;
-    
-    if(event.type == SceneManagerEventTypeCustom) {
-        // Placeholder: Will show prayer text
-        widget_reset(app->widget);
-        widget_add_string_element(app->widget, 4, 14, AlignLeft, AlignTop, FontPrimary, "Prayer");
-        widget_add_string_element(app->widget, 4, 34, AlignLeft, AlignTop, FontSecondary,
-                                  "Coming soon.");
-        widget_add_string_element(app->widget, 4, 48, AlignLeft, AlignTop, FontSecondary,
-                                  "Phase 6.3");
-        view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
-        return true;
+    if(event.type != SceneManagerEventTypeCustom) return false;
+    uint16_t idx = (uint16_t)event.event;
+    if(devotional_loader_prayer_count(&app->devotional) == 0) return true;
+    if(idx >= devotional_loader_prayer_count(&app->devotional)) return true;
+    app->selected_prayer_index = idx;
+    if(devotional_loader_get_prayer(&app->devotional, idx, NULL, 0,
+                                    app->prayer_text_buf, sizeof(app->prayer_text_buf))) {
+        scene_manager_next_scene(app->scene_manager, CatholicBibleScenePrayerView);
     }
-    
-    return false;
+    return true;
 }
 
 static void catholic_bible_scene_prayers_on_exit(void* context) {
     CatholicBibleApp* app = context;
     submenu_reset(app->submenu);
-    widget_reset(app->widget);
+}
+
+/* Scene: Prayer view – show one prayer text (Back returns to Prayers list) */
+static void catholic_bible_scene_prayer_view_on_enter(void* context) {
+    CatholicBibleApp* app = context;
+    char title[DEVOTIONAL_MAX_TITLE];
+    if(devotional_loader_get_prayer(&app->devotional, app->selected_prayer_index,
+                                   title, sizeof(title),
+                                   app->prayer_text_buf, sizeof(app->prayer_text_buf))) {
+        text_box_set_text(app->text_box, app->prayer_text_buf);
+        text_box_set_focus(app->text_box, TextBoxFocusStart);
+    } else {
+        text_box_set_text(app->text_box, "(Prayer not found.)");
+    }
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewTextBox);
+}
+
+static bool catholic_bible_scene_prayer_view_on_event(void* context, SceneManagerEvent event) {
+    (void)context;
+    (void)event;
+    return false;
+}
+
+static void catholic_bible_scene_prayer_view_on_exit(void* context) {
+    CatholicBibleApp* app = context;
+    text_box_reset(app->text_box);
 }
 
 /* ============================================================================
@@ -1256,6 +1484,105 @@ static void catholic_bible_scene_confession_on_exit(void* context) {
 }
 
 /* ============================================================================
+ * Scene: Guides (Phase 7) – Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments, Marrying Catholic
+ * ==========================================================================*/
+
+static void catholic_bible_scene_guides_on_enter(void* context) {
+    CatholicBibleApp* app = context;
+    submenu_reset(app->submenu);
+    submenu_set_header(app->submenu, "Guides");
+    submenu_add_item(app->submenu, "Order of Mass", 0, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "OCIA Guide", 1, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "Lenten Guide", 2, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "Easter Guide", 3, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "Pentecost Guide", 4, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "Sacraments Guide", 5, catholic_bible_submenu_callback, app);
+    submenu_add_item(app->submenu, "Marrying Catholic", 6, catholic_bible_submenu_callback, app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewSubmenu);
+}
+
+static void guides_fill_placeholder(CatholicBibleApp* app, uint8_t guide_id) {
+    char* buf = app->devotional_display_buf;
+    size_t sz = DEVOTIONAL_DISPLAY_BUF_SIZE;
+    switch(guide_id) {
+    case 0:
+        snprintf(buf, sz, "Order of Mass\n\nGuide to the Ordinary Form: Introductory Rites, Liturgy of the Word, Liturgy of the Eucharist, Concluding Rites. Full content coming soon.");
+        break;
+    case 1:
+        snprintf(buf, sz, "OCIA Guide\n\nOrder of Christian Initiation of Adults. Tracks: Inquirer and Sponsor. Full content coming soon.");
+        break;
+    case 2:
+        snprintf(buf, sz, "Lenten Guide\n\nPrayer, fasting, almsgiving; Ash Wednesday, Holy Week, Stations. Full content coming soon.");
+        break;
+    case 3:
+        snprintf(buf, sz, "Easter Guide\n\nEaster season, Octave, Pentecost. Full content coming soon.");
+        break;
+    case 4:
+        snprintf(buf, sz, "Pentecost Guide\n\nMeaning and practices. Full content coming soon.");
+        break;
+    case 5:
+        snprintf(buf, sz,
+            "Sacraments of the Catholic Church\n\n"
+            "A sacrament is an outward sign instituted by Christ to give grace. The Church celebrates seven sacraments.\n\n"
+            "Sacraments of Initiation: Baptism (forgiveness of sin, new life in Christ); Confirmation (strengthening by the Holy Spirit); Eucharist (Body and Blood of Christ).\n\n"
+            "Sacraments of Healing: Penance/Reconciliation (forgiveness of sins); Anointing of the Sick (comfort and healing).\n\n"
+            "Sacraments at the Service of Communion: Holy Orders (bishops, priests, deacons); Matrimony (union of man and woman).\n\n"
+            "Each sacrament has a minister, matter and form, and effects. Full guide content will be added (e.g. sacraments.bin).");
+        break;
+    case 6:
+        snprintf(buf, sz,
+            "Marrying Catholic\n\n"
+            "Marriage in the Church is a sacrament. Validity requires free consent, canonical form, and no impediments.\n\n"
+            "Preparation: FOCCUS/Pre-Cana, meetings with priest or deacon, baptismal certificate, dispensations if needed.\n\n"
+            "Two Catholics: Nuptial Mass, readings, vows.\n\n"
+            "Catholic + other Christian: mixed marriage; dispensation; Mass or ceremony outside Mass.\n\n"
+            "Catholic + non-Christian: disparity of cult; dispensation; promise to raise children Catholic.\n\n"
+            "Convalidation and annulments: see your pastor. Full guide content will be added (e.g. marrying_catholic.bin).");
+        break;
+    default:
+        snprintf(buf, sz, "Guide (scaffold)");
+        break;
+    }
+}
+
+static bool catholic_bible_scene_guides_on_event(void* context, SceneManagerEvent event) {
+    CatholicBibleApp* app = context;
+    if(event.type != SceneManagerEventTypeCustom) return false;
+    uint8_t id = (uint8_t)(event.event & 0xFF);
+    if(id > 6) return true;
+    app->selected_guide_id = id;
+    guides_fill_placeholder(app, id);
+    scene_manager_next_scene(app->scene_manager, CatholicBibleSceneGuideView);
+    return true;
+}
+
+static void catholic_bible_scene_guides_on_exit(void* context) {
+    CatholicBibleApp* app = context;
+    submenu_reset(app->submenu);
+    (void)app;
+}
+
+/* Scene: Guide view – scrollable text for one guide (placeholder or future .bin) */
+static void catholic_bible_scene_guide_view_on_enter(void* context) {
+    CatholicBibleApp* app = context;
+    text_box_set_text(app->text_box, app->devotional_display_buf);
+    text_box_set_focus(app->text_box, TextBoxFocusStart);
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewTextBox);
+}
+
+static bool catholic_bible_scene_guide_view_on_event(void* context, SceneManagerEvent event) {
+    (void)context;
+    (void)event;
+    return false;
+}
+
+static void catholic_bible_scene_guide_view_on_exit(void* context) {
+    CatholicBibleApp* app = context;
+    text_box_reset(app->text_box);
+    (void)app;
+}
+
+/* ============================================================================
  * Scene handlers table (SDK 1.4.3 compatible)
  * ==========================================================================*/
 
@@ -1266,10 +1593,16 @@ static void (*const catholic_bible_on_enter_handlers[])(void*) = {
     catholic_bible_scene_browse_verses_on_enter,
     catholic_bible_scene_reader_on_enter,
     catholic_bible_scene_search_on_enter,
+    catholic_bible_scene_search_results_on_enter,
+    catholic_bible_scene_prayer_view_on_enter,
     catholic_bible_scene_missal_on_enter,
+    catholic_bible_scene_missal_list_on_enter,
+    catholic_bible_scene_missal_text_on_enter,
     catholic_bible_scene_rosary_on_enter,
     catholic_bible_scene_prayers_on_enter,
     catholic_bible_scene_confession_on_enter,
+    catholic_bible_scene_guides_on_enter,
+    catholic_bible_scene_guide_view_on_enter,
     catholic_bible_scene_bookmarks_on_enter,
     catholic_bible_scene_history_on_enter,
     catholic_bible_scene_about_on_enter,
@@ -1282,10 +1615,16 @@ static bool (*const catholic_bible_on_event_handlers[])(void*, SceneManagerEvent
     catholic_bible_scene_browse_verses_on_event,
     catholic_bible_scene_reader_on_event,
     catholic_bible_scene_search_on_event,
+    catholic_bible_scene_search_results_on_event,
+    catholic_bible_scene_prayer_view_on_event,
     catholic_bible_scene_missal_on_event,
+    catholic_bible_scene_missal_list_on_event,
+    catholic_bible_scene_missal_text_on_event,
     catholic_bible_scene_rosary_on_event,
     catholic_bible_scene_prayers_on_event,
     catholic_bible_scene_confession_on_event,
+    catholic_bible_scene_guides_on_event,
+    catholic_bible_scene_guide_view_on_event,
     catholic_bible_scene_bookmarks_on_event,
     catholic_bible_scene_history_on_event,
     catholic_bible_scene_about_on_event,
@@ -1298,10 +1637,16 @@ static void (*const catholic_bible_on_exit_handlers[])(void*) = {
     catholic_bible_scene_browse_verses_on_exit,
     catholic_bible_scene_reader_on_exit,
     catholic_bible_scene_search_on_exit,
+    catholic_bible_scene_search_results_on_exit,
+    catholic_bible_scene_prayer_view_on_exit,
     catholic_bible_scene_missal_on_exit,
+    catholic_bible_scene_missal_list_on_exit,
+    catholic_bible_scene_missal_text_on_exit,
     catholic_bible_scene_rosary_on_exit,
     catholic_bible_scene_prayers_on_exit,
     catholic_bible_scene_confession_on_exit,
+    catholic_bible_scene_guides_on_exit,
+    catholic_bible_scene_guide_view_on_exit,
     catholic_bible_scene_bookmarks_on_exit,
     catholic_bible_scene_history_on_exit,
     catholic_bible_scene_about_on_exit,
@@ -1365,6 +1710,7 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
     app->submenu = submenu_alloc();
     app->widget = widget_alloc();
     app->text_box = text_box_alloc();
+    app->text_input = text_input_alloc();
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, catholic_bible_navigation_callback);
@@ -1378,10 +1724,14 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
     view_set_previous_callback(submenu_view, catholic_bible_submenu_previous_callback);
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewSubmenu, submenu_view);
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewWidget, widget_get_view(app->widget));
+    View* text_input_view = text_input_get_view(app->text_input);
+    view_set_previous_callback(text_input_view, catholic_bible_submenu_previous_callback);
+    view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewTextInput, text_input_view);
     
-    // Register TextBox view with input callback for navigation
+    // Register TextBox view (reader + prayer view)
     View* text_box_view = text_box_get_view(app->text_box);
     view_set_context(text_box_view, app);
+    view_set_previous_callback(text_box_view, catholic_bible_submenu_previous_callback);
     view_set_input_callback(text_box_view, catholic_bible_reader_textbox_input_callback);
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewTextBox, text_box_view);
 
@@ -1393,7 +1743,34 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
 
     // Initialize storage adapter (Phase 2.2)
     storage_adapter_init(&app->storage);
-    
+    // Initialize search adapter (Phase 3) when Bible assets are available
+    if(storage_adapter_assets_available(&app->storage)) {
+        const char* p = app->storage.path_verse_index;
+        const char* last = p ? strrchr(p, '/') : NULL;
+        char base[96];
+        if(last && (size_t)(last - p) < sizeof(base)) {
+            size_t n = (size_t)(last - p);
+            memcpy(base, p, n);
+            base[n] = '\0';
+            search_adapter_init(&app->search, base);
+        }
+    }
+    // Initialize devotional loader (Phase 6)
+    if(storage_adapter_assets_available(&app->storage)) {
+        const char* p = app->storage.path_verse_index;
+        const char* last = p ? strrchr(p, '/') : NULL;
+        char base[96];
+        if(last && (size_t)(last - p) < sizeof(base)) {
+            size_t n = (size_t)(last - p);
+            memcpy(base, p, n);
+            base[n] = '\0';
+            char path[128];
+            snprintf(path, sizeof(path), "%s/devotional.bin", base);
+            devotional_loader_init(&app->devotional, path);
+            snprintf(path, sizeof(path), "%s/missal.bin", base);
+            missal_loader_init(&app->missal, path);
+        }
+    }
     // Initialize bookmark and history managers (Phase 4)
     if(!bookmark_manager_init(&app->bookmarks)) {
         // Log error but continue - bookmarks are optional
@@ -1415,11 +1792,17 @@ static void catholic_bible_app_free(CatholicBibleApp* app) {
 
     view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewWidget);
+    view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewTextInput);
     view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewTextBox);
 
     submenu_free(app->submenu);
     widget_free(app->widget);
+    text_input_free(app->text_input);
     text_box_free(app->text_box);
+    
+    search_adapter_free(&app->search);
+    devotional_loader_free(&app->devotional);
+    missal_loader_free(&app->missal);
     
     if(app->reader_viewport) {
         view_port_free(app->reader_viewport);
