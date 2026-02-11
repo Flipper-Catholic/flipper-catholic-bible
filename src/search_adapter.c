@@ -112,8 +112,8 @@ static bool load_shard(SearchAdapter* adapter, int shard_id) {
         furi_record_close(RECORD_STORAGE);
         return false;
     }
-    size_t size = 0;
-    if(!stream_size(stream, &size) || size == 0 || size > 512 * 1024) {
+    size_t size = stream_size(stream);
+    if(size == 0 || size > 512 * 1024) {
         file_stream_close(stream);
         stream_free(stream);
         furi_record_close(RECORD_STORAGE);

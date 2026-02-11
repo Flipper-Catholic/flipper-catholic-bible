@@ -36,8 +36,8 @@ bool missal_loader_init(MissalLoader* loader, const char* path) {
     if(!file_stream_open(stream, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         stream_free(stream); furi_record_close(RECORD_STORAGE); return false;
     }
-    size_t size = 0;
-    if(!stream_size(stream, &size) || size < 12) {
+    size_t size = stream_size(stream);
+    if(size < 12) {
         file_stream_close(stream); stream_free(stream); furi_record_close(RECORD_STORAGE); return false;
     }
     uint8_t* data = malloc(size);

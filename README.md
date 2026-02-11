@@ -81,9 +81,11 @@ The design intentionally avoids commentary, notes, audio, or online features to 
 ```bash
 python3 -m pip install --upgrade ufbt   # if needed
 ufbt build
-# Install: copy the built .fap to the Flipper, or run:
+# Deploy to attached device: connect Flipper via USB, then:
 ufbt launch
 ```
+
+**Build note:** If `tools/verse_counts_generated.c` exists and the build fails with duplicate-symbol errors, rename it to `verse_counts_generated.c.inactive` (verse counts are already in `src/books_meta.c`).
 
 The repo includes pre-built assets in the `files/` folder so that `ufbt build` produces a FAP that contains the full Bible. The app appears under **Apps → Tools** with the cross icon.
 

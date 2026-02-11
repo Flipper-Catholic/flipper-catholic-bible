@@ -20,8 +20,8 @@ bool devotional_loader_init(DevotionalLoader* loader, const char* path) {
         furi_record_close(RECORD_STORAGE);
         return false;
     }
-    size_t size = 0;
-    if(!stream_size(stream, &size) || size < 8) {
+    size_t size = stream_size(stream);
+    if(size < 8) {
         file_stream_close(stream);
         stream_free(stream);
         furi_record_close(RECORD_STORAGE);

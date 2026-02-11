@@ -926,10 +926,9 @@ static void catholic_bible_scene_reader_on_exit(void* context) {
 }
 
 /* Search: text input callback – run search and go to results */
-static void catholic_bible_search_done_callback(void* context, const char* result) {
+static void catholic_bible_search_done_callback(void* context) {
     CatholicBibleApp* app = context;
-    if(!result) return;
-    strncpy(app->search_query_buf, result, SEARCH_MAX_QUERY_LEN - 1);
+    /* Result already written to app->search_query_buf by text_input_set_result_callback */
     app->search_query_buf[SEARCH_MAX_QUERY_LEN - 1] = '\0';
     app->search_result_count = 0;
     if(search_adapter_available(&app->search)) {
@@ -945,7 +944,7 @@ static void catholic_bible_scene_search_on_enter(void* context) {
     CatholicBibleApp* app = context;
     if(search_adapter_available(&app->search)) {
         text_input_set_header_text(app->text_input, "Search word");
-        text_input_set_result_callback(app->text_input, catholic_bible_search_done_callback, app);
+        text_input_set_result_callback(app->text_input, catholic_bible_search_done_callback, app, app->search_query_buf, SEARCH_MAX_QUERY_LEN, true);
         text_input_set_minimum_length(app->text_input, 2);
         text_input_reset(app->text_input);
         view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewTextInput);

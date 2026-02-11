@@ -11,8 +11,6 @@
 #define SEARCH_MAX_QUERY_LEN 32
 #define SEARCH_SHARD_MAP_ENTRIES 676  /* 26*26 */
 
-typedef struct StorageAdapter StorageAdapter;
-
 typedef struct {
     bool initialized;
     char path_shard_map[96];
