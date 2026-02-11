@@ -92,9 +92,11 @@
 
 ---
 
-### 2.2 Verse Navigation (Left/Right)
-- [ ] **TC-026**: Right arrow key advances to next verse
-- [ ] **TC-027**: Left arrow key goes to previous verse
+### 2.2 Verse Navigation (Infinite Scroll + Left/Right)
+- [ ] **TC-026**: Down arrow at bottom of verse advances to next verse (infinite scroll)
+- [ ] **TC-027**: Up arrow at top of verse goes to previous verse (infinite scroll)
+- [ ] **TC-026b**: Right arrow key also advances to next verse
+- [ ] **TC-027b**: Left arrow key also goes to previous verse
 - [ ] **TC-028**: Navigation works for Genesis 1:1 through 1:31
 - [ ] **TC-029**: Cannot navigate below verse 1 (boundary check)
 - [ ] **TC-030**: Cannot navigate above verse 31 (boundary check)

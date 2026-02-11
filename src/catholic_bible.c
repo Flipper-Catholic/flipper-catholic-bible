@@ -37,10 +37,11 @@
 #define VS_DECODE_VERSE(e)   ((uint16_t)((e) & 0xFFFFu))
 
 #define READER_EVT_PREV_VERSE 0x91000001u
+#define READER_EVT_NEXT_VERSE 0x91000002u
+#define READER_EVT_BACK       0x91000003u
 
 /* Forward declaration - use struct keyword for incomplete type */
 struct CatholicBibleApp;
-#define READER_EVT_NEXT_VERSE 0x91000002u
 
 /* ============================================================================
  * books_meta.h helpers (expects your now-working “real” books_meta.h)
@@ -181,8 +182,7 @@ typedef struct {
     Submenu* submenu;
     Widget* widget;
     TextBox* text_box;
-    ViewPort* reader_viewport; // ViewPort for custom drawing
-    View* reader_view; // View wrapper for ViewDispatcher
+    ViewPort* reader_viewport; // Reader: added to GUI in reader scene only
 
     // Browse state
     size_t selected_book_index;
@@ -191,7 +191,8 @@ typedef struct {
     uint16_t chapter_page;
     
     // Reader view state
-    int32_t scroll_offset; // Scroll position (pixels)
+    int32_t scroll_offset;       // Scroll position (pixels)
+    int32_t reader_content_height; // Total content height (pixels), set by draw callback
     const char* current_verse_text; // Current verse text being displayed
     char* current_verse_buffer; // Buffer for SD card-loaded verse text
     
@@ -555,52 +556,43 @@ static void catholic_bible_scene_browse_verses_on_exit(void* context) {
 #define READER_RIGHT_MARGIN 4
 #define READER_TOP_MARGIN 4
 
-/* Draw wrapped text with scroll offset - simplified and safer version */
-static void reader_draw_text(Canvas* canvas, const char* text, int32_t scroll_y, uint8_t width, uint8_t height) {
+/* Draw wrapped text with scroll offset; sets app->reader_content_height when app is non-NULL. */
+static void reader_draw_text(Canvas* canvas, const char* text, int32_t scroll_y, uint8_t width, uint8_t height, CatholicBibleApp* app) {
     if(!text || !canvas) return;
     
     uint8_t font_height = canvas_current_font_height(canvas);
-    // Start text at top of text area (below header)
-    int32_t current_y = READER_HEADER_HEIGHT + READER_TOP_MARGIN - scroll_y;
+    int32_t content_top = READER_HEADER_HEIGHT + READER_TOP_MARGIN;
+    int32_t current_y = content_top - scroll_y;
     uint8_t available_width = width - READER_LEFT_MARGIN - READER_RIGHT_MARGIN;
-    
-    // Simple approach: draw text character by character with word wrapping
-    // This avoids complex pointer arithmetic that could cause BusFault
     
     char line[128];
     size_t line_pos = 0;
     size_t text_len = strlen(text);
-    if(text_len > 1000) text_len = 1000; // Safety limit
+    if(text_len > 1000) text_len = 1000;
     
-    for(size_t i = 0; i < text_len && current_y < (int32_t)(height + font_height); i++) {
+    for(size_t i = 0; i < text_len; i++) {
         char c = text[i];
         
-        // Handle newlines
         if(c == '\n') {
             line[line_pos] = '\0';
-            if(current_y + font_height >= 0 && current_y < (int32_t)height && line_pos > 0) {
-                canvas_draw_str(canvas, READER_LEFT_MARGIN, current_y + font_height, line);
+            if(current_y + font_height >= 0 && current_y < (int32_t)(height + font_height) && line_pos > 0) {
+                canvas_draw_str(canvas, READER_LEFT_MARGIN, (uint8_t)(current_y + font_height), line);
             }
             line_pos = 0;
             current_y += font_height + READER_LINE_SPACING;
             continue;
         }
         
-        // Add character to line if space available
         if(line_pos < sizeof(line) - 1) {
             line[line_pos++] = c;
             line[line_pos] = '\0';
             
-            // Check if line would overflow (simple check on space boundaries)
             if(c == ' ' || line_pos == sizeof(line) - 1) {
                 uint16_t line_width = canvas_string_width(canvas, line);
-                
-                // If line too long and we're at a space, wrap it
                 if(line_width > available_width && c == ' ') {
-                    // Draw line without last space
                     line[line_pos - 1] = '\0';
-                    if(current_y + font_height >= 0 && current_y < (int32_t)height) {
-                        canvas_draw_str(canvas, READER_LEFT_MARGIN, current_y + font_height, line);
+                    if(current_y + font_height >= 0 && current_y < (int32_t)(height + font_height)) {
+                        canvas_draw_str(canvas, READER_LEFT_MARGIN, (uint8_t)(current_y + font_height), line);
                     }
                     line_pos = 0;
                     current_y += font_height + READER_LINE_SPACING;
@@ -609,13 +601,17 @@ static void reader_draw_text(Canvas* canvas, const char* text, int32_t scroll_y,
         }
     }
     
-    // Draw remaining line (if any characters were accumulated)
     if(line_pos > 0) {
         line[line_pos] = '\0';
-        // Only draw if line is visible
         if(current_y + font_height >= 0 && current_y < (int32_t)(height + font_height)) {
-            canvas_draw_str(canvas, READER_LEFT_MARGIN, current_y + font_height, line);
+            canvas_draw_str(canvas, READER_LEFT_MARGIN, (uint8_t)(current_y + font_height), line);
         }
+        current_y += font_height + READER_LINE_SPACING;
+    }
+    
+    if(app) {
+        int32_t ch = current_y - content_top;
+        app->reader_content_height = (ch > 0) ? ch : 0;
     }
 }
 
@@ -647,57 +643,61 @@ static void reader_viewport_draw_callback(Canvas* canvas, void* context) {
     if(app->current_verse_text && strlen(app->current_verse_text) > 0) {
         uint8_t viewport_width = 128;
         uint8_t viewport_height = 64 - READER_HEADER_HEIGHT;
-        reader_draw_text(canvas, app->current_verse_text, app->scroll_offset, 
-                        viewport_width, viewport_height);
+        reader_draw_text(canvas, app->current_verse_text, app->scroll_offset,
+                        viewport_width, viewport_height, app);
     } else {
+        if(app) app->reader_content_height = 0;
         // Show placeholder if no text loaded yet
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, READER_LEFT_MARGIN, READER_HEADER_HEIGHT + 20, "No text");
     }
 }
 
-/* Reader view input callback - View version returns bool */
-static bool reader_view_input_callback(InputEvent* event, void* context) {
+/* Reader ViewPort input callback: infinite scroll (Up/Down = prev/next verse when at edge). */
+static void reader_viewport_input_callback(InputEvent* event, void* context) {
     CatholicBibleApp* app = context;
+    if(!app || !event || !app->reader_viewport) return;
     
-    if(!app || !event) return false;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return;
     
-    if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
-        if(event->key == InputKeyUp) {
-            // Scroll up
-            if(app->scroll_offset > 0) {
-                app->scroll_offset -= 10;
-                if(app->scroll_offset < 0) app->scroll_offset = 0;
-                view_port_update(app->reader_viewport);
-            }
-            return true;
-        }
-        
-        if(event->key == InputKeyDown) {
-            // Scroll down
-            app->scroll_offset += 10;
+    const uint8_t visible_height = 64 - READER_HEADER_HEIGHT;
+    int32_t max_scroll = app->reader_content_height - visible_height;
+    if(max_scroll < 0) max_scroll = 0;
+    
+    switch(event->key) {
+    case InputKeyBack:
+        if(app->view_dispatcher)
+            view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_BACK);
+        break;
+    case InputKeyUp:
+        if(app->scroll_offset > 0) {
+            app->scroll_offset -= 10;
+            if(app->scroll_offset < 0) app->scroll_offset = 0;
             view_port_update(app->reader_viewport);
-            return true;
+        } else if(app->view_dispatcher) {
+            view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_PREV_VERSE);
         }
-        
-        if(event->key == InputKeyLeft) {
-            // Previous verse
-            if(app->view_dispatcher) {
-                view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_PREV_VERSE);
-            }
-            return true;
+        break;
+    case InputKeyDown:
+        if(app->scroll_offset < max_scroll) {
+            app->scroll_offset += 10;
+            if(app->scroll_offset > max_scroll) app->scroll_offset = max_scroll;
+            view_port_update(app->reader_viewport);
+        } else if(app->view_dispatcher) {
+            view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_NEXT_VERSE);
         }
-        
-        if(event->key == InputKeyRight) {
-            // Next verse
-            if(app->view_dispatcher) {
-                view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_NEXT_VERSE);
-            }
-            return true;
-        }
+        break;
+    case InputKeyLeft:
+        if(app->view_dispatcher)
+            view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_PREV_VERSE);
+        break;
+    case InputKeyRight:
+        if(app->view_dispatcher)
+            view_dispatcher_send_custom_event(app->view_dispatcher, READER_EVT_NEXT_VERSE);
+        break;
+    default:
+        break;
     }
-    
-    return false;
 }
 
 /* ============================================================================
@@ -733,16 +733,12 @@ static void catholic_bible_scene_reader_on_enter(void* context) {
         app->selected_verse
     );
     
-    // Reset scroll to top when entering new verse
     app->scroll_offset = 0;
+    app->reader_content_height = 0;
 
-    // Switch to custom reader view and trigger update
-    if(app->view_dispatcher) {
-        view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewReader);
-    }
-    
-    // Force ViewPort update to redraw with new verse text
-    if(app->reader_viewport) {
+    // Show reader via ViewPort only (add to GUI so it actually draws)
+    if(app->gui && app->reader_viewport) {
+        gui_add_view_port(app->gui, app->reader_viewport, GuiLayerFullscreen);
         view_port_update(app->reader_viewport);
     }
 }
@@ -754,14 +750,17 @@ static bool catholic_bible_scene_reader_on_event(void* context, SceneManagerEven
         uint16_t max_verses = cb_chapter_verses(app, app->selected_book_index, app->selected_chapter);
         if(max_verses == 0) max_verses = 1;
 
+        if(event.event == READER_EVT_BACK) {
+            scene_manager_previous_scene(app->scene_manager);
+            return true;
+        }
         if(event.event == READER_EVT_PREV_VERSE) {
             if(app->selected_verse > 1) {
                 app->selected_verse--;
                 scene_manager_next_scene(app->scene_manager, CatholicBibleSceneReader);
             }
-        return true;
+            return true;
         }
-
         if(event.event == READER_EVT_NEXT_VERSE) {
             if(app->selected_verse < max_verses) {
                 app->selected_verse++;
@@ -776,8 +775,11 @@ static bool catholic_bible_scene_reader_on_event(void* context, SceneManagerEven
 
 static void catholic_bible_scene_reader_on_exit(void* context) {
     CatholicBibleApp* app = context;
+    if(app->gui && app->reader_viewport)
+        gui_remove_view_port(app->gui, app->reader_viewport);
     app->current_verse_text = NULL;
     app->scroll_offset = 0;
+    app->reader_content_height = 0;
 }
 
 /* ============================================================================
@@ -1234,19 +1236,11 @@ static CatholicBibleApp* catholic_bible_app_alloc(void) {
     view_set_input_callback(text_box_view, catholic_bible_reader_textbox_input_callback);
     view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewTextBox, text_box_view);
 
-    // Create custom reader view using View directly
-    app->reader_view = view_alloc();
-    view_set_draw_callback(app->reader_view, reader_viewport_draw_callback);
-    view_set_input_callback(app->reader_view, reader_view_input_callback);
-    view_set_context(app->reader_view, app);
-    view_set_orientation(app->reader_view, ViewOrientationVertical);
-    
-    // Keep ViewPort for draw callback compatibility and updates
+    // Reader: single ViewPort added to GUI when in reader scene (fixes blank screen)
     app->reader_viewport = view_port_alloc();
     view_port_draw_callback_set(app->reader_viewport, reader_viewport_draw_callback, app);
+    view_port_input_callback_set(app->reader_viewport, reader_viewport_input_callback, app);
     view_port_enabled_set(app->reader_viewport, true);
-    
-    view_dispatcher_add_view(app->view_dispatcher, CatholicBibleViewReader, app->reader_view);
 
     // Initialize storage adapter (Phase 2.2)
     storage_adapter_init(&app->storage);
@@ -1273,7 +1267,6 @@ static void catholic_bible_app_free(CatholicBibleApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewTextBox);
-    view_dispatcher_remove_view(app->view_dispatcher, CatholicBibleViewReader);
 
     submenu_free(app->submenu);
     widget_free(app->widget);
@@ -1281,10 +1274,6 @@ static void catholic_bible_app_free(CatholicBibleApp* app) {
     
     if(app->reader_viewport) {
         view_port_free(app->reader_viewport);
-    }
-    
-    if(app->reader_view) {
-        view_free(app->reader_view);
     }
     
     // Free storage adapter (Phase 2.2)

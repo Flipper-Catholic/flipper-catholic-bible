@@ -5,4 +5,8 @@ App(
     entry_point="catholic_bible_app",
     stack_size=4096,
     icon="A_Book_14",
+    fap_category="Tools",
+    fap_version="0.2",
+    fap_description="Offline Catholic Bible (Douay-Rheims). Read, bookmark, history.",
+    fap_author="Gilbert Roberts",
 )

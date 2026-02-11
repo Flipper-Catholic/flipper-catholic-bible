@@ -86,6 +86,9 @@ python3 -m pip install --upgrade ufbt
 ufbt launch
 ```
 
+When installed as a FAP, the app appears under **Apps → Tools**.  
+**Reader controls:** Up/Down scroll within a verse; at top/bottom, Up/Down go to previous/next verse (infinite scroll). Left/Right also change verse. Back exits.
+
 > ⚠️ **Note**: Currently only Genesis 1:1-31 is available. Full Bible text loading via SD card is planned for Phase 2.
 
 ---
