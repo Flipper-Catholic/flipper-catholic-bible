@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "guide": "1. Examine your conscience (see 10 Commandments and Examination). 2. Go to the priest and say: 'Bless me, Father, for I have sinned. It has been [time] since my last confession. These are my sins.' 3. Confess your sins clearly and completely. 4. Listen to the priest's counsel and accept your penance. 5. Say an Act of Contrition. 6. Receive absolution. 7. Do your penance and thank God.",
+  "ten_commandments": [
+    "I am the Lord your God; you shall not have strange gods before me.",
+    "You shall not take the name of the Lord your God in vain.",
+    "Remember to keep holy the Lord's Day.",
+    "Honor your father and your mother.",
+    "You shall not kill.",
+    "You shall not commit adultery.",
+    "You shall not steal.",
+    "You shall not bear false witness against your neighbor.",
+    "You shall not covet your neighbor's wife.",
+    "You shall not covet your neighbor's goods."
+  ],
+  "deadly_sins": [
+    { "name": "Pride", "description": "Excessive belief in one's own abilities." },
+    { "name": "Greed", "description": "Desire for material wealth or gain." },
+    { "name": "Lust", "description": "Unchaste desire or craving for pleasure." },
+    { "name": "Envy", "description": "Resentment of another's good fortune." },
+    { "name": "Gluttony", "description": "Overindulgence in food or drink." },
+    { "name": "Wrath", "description": "Anger or hatred toward others." },
+    { "name": "Sloth", "description": "Spiritual or physical laziness." }
+  ],
+  "examination": [
+    { "category": "God", "question": "Have I prayed daily? Have I kept the Lord's Day holy?" },
+    { "category": "Others", "question": "Have I been charitable? Have I lied or harmed anyone?" },
+    { "category": "Self", "question": "Have I been chaste? Have I been lazy or greedy?" }
+  ],
+  "acts_of_contrition": [
+    { "title": "Traditional", "text": "O my God, I am heartily sorry for having offended Thee, and I detest all my sins because I dread the loss of heaven and the pains of hell; but most of all because they offend Thee, my God, Who are all good and deserving of all my love. I firmly resolve, with the help of Thy grace, to confess my sins, to do penance, and to amend my life. Amen." },
+    { "title": "Modern", "text": "My God, I am sorry for my sins with all my heart. In choosing to do wrong and failing to do good, I have sinned against you whom I should love above all things. I firmly intend, with your help, to do penance, to sin no more, and to avoid whatever leads me to sin. Our Savior Jesus Christ suffered and died for us. In his name, my God, have mercy. Amen." }
+  ],
+  "tips": "Go when you are prepared, not in a rush. Be honest and complete. If you forget a sin, you may mention it next time or add it at the end. The priest is bound by the seal of confession; he cannot repeat what you say.",
+  "post": "After confession, do your penance as soon as you can. Thank God for his mercy. Avoid the near occasion of sin."
+}

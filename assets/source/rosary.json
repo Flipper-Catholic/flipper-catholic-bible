@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "how_to": "Pray with beads: Creed, then on large beads Our Father, small beads Hail Mary. After each decade say Glory Be and Fatima Prayer. Conclude with Hail Holy Queen. Meditate on one set of mysteries (Joyful, Sorrowful, Glorious, Luminous).",
+  "prayers": [
+    { "id": "fatima", "title": "Fatima Prayer", "text": "O my Jesus, forgive us our sins, save us from the fire of hell, lead all souls to heaven, especially those who have most need of your mercy." },
+    { "id": "hail_holy_queen", "title": "Hail Holy Queen", "text": "Hail, holy Queen, Mother of mercy. To you we cry, poor banished children of Eve. Turn then, most gracious advocate, your eyes of mercy toward us; and after this our exile show unto us the blessed fruit of your womb, Jesus. O clement, O loving, O sweet Virgin Mary. Pray for us, O holy Mother of God, that we may be made worthy of the promises of Christ. Amen." }
+  ],
+  "mysteries": {
+    "joyful": [
+      { "title": "The Annunciation", "meditation": "The Angel Gabriel announces to Mary that she will bear the Son of God.", "scripture": "Luke 1:26-38" },
+      { "title": "The Visitation", "meditation": "Mary visits Elizabeth.", "scripture": "Luke 1:39-56" },
+      { "title": "The Nativity", "meditation": "Jesus is born in Bethlehem.", "scripture": "Luke 2:1-20" },
+      { "title": "The Presentation", "meditation": "Jesus is presented in the Temple.", "scripture": "Luke 2:22-38" },
+      { "title": "The Finding in the Temple", "meditation": "Jesus is found in the Temple after three days.", "scripture": "Luke 2:41-52" }
+    ],
+    "sorrowful": [
+      { "title": "The Agony in the Garden", "meditation": "Jesus prays in Gethsemane.", "scripture": "Matthew 26:36-46" },
+      { "title": "The Scourging", "meditation": "Jesus is scourged at the pillar.", "scripture": "John 19:1" },
+      { "title": "The Crowning with Thorns", "meditation": "Jesus is crowned with thorns.", "scripture": "Matthew 27:27-31" },
+      { "title": "The Carrying of the Cross", "meditation": "Jesus carries the cross.", "scripture": "John 19:17" },
+      { "title": "The Crucifixion", "meditation": "Jesus dies on the cross.", "scripture": "John 19:25-30" }
+    ],
+    "glorious": [
+      { "title": "The Resurrection", "meditation": "Jesus rises from the dead.", "scripture": "Matthew 28:1-10" },
+      { "title": "The Ascension", "meditation": "Jesus ascends into heaven.", "scripture": "Acts 1:6-11" },
+      { "title": "Pentecost", "meditation": "The Holy Spirit descends.", "scripture": "Acts 2:1-4" },
+      { "title": "The Assumption", "meditation": "Mary is taken into heaven.", "scripture": "Revelation 12:1" },
+      { "title": "The Coronation of Mary", "meditation": "Mary is crowned Queen.", "scripture": "Revelation 12:1" }
+    ],
+    "luminous": [
+      { "title": "The Baptism of Jesus", "meditation": "Jesus is baptized in the Jordan.", "scripture": "Matthew 3:13-17" },
+      { "title": "The Wedding at Cana", "meditation": "Jesus changes water into wine.", "scripture": "John 2:1-11" },
+      { "title": "Proclamation of the Kingdom", "meditation": "Jesus proclaims the kingdom.", "scripture": "Mark 1:14-15" },
+      { "title": "The Transfiguration", "meditation": "Jesus is transfigured.", "scripture": "Matthew 17:1-8" },
+      { "title": "The Institution of the Eucharist", "meditation": "Jesus institutes the Eucharist.", "scripture": "Matthew 26:26-29" }
+    ]
+  }
+}
