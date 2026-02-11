@@ -4,6 +4,10 @@ All notable changes to the Catholic Bible app for Flipper Zero.
 
 ---
 
+v0.3 (unreleased):
+- Phase 5.1: Try bundled FAP assets even when SD card is absent (no-SD devices can use full Bible).
+- Guided recovery: menu header shows "(No data: reinstall or add SD)" when no assets; verse placeholder suggests reinstall or SD path.
+
 v0.2:
 - Full Douay-Rheims Bible (73 books, 34,827 verses) bundled in FAP; no manual SD copy required for full text.
 - Fallback: app reads from SD `/apps_data/bible/` if present, else uses bundled assets.

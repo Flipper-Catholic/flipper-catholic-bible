@@ -11,13 +11,15 @@ All Bible assets must live at:
 
 /apps_data/bible/
 
-Required files:
+Required files (Bible):
 - bible_text.bin
 - verse_index.bin
 - canon_table.bin
 - shard_map.bin
 - shards/shard_*.bin
 - metadata.json
+
+Optional (Phase 6 devotional): devotional.json – Missal, Rosary, Prayers, Confession in one file. See docs/devotional-data-design.md.
 
 ---
 

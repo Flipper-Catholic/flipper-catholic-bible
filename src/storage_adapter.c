@@ -28,20 +28,16 @@ bool storage_adapter_init(StorageAdapter* adapter) {
     memset(adapter, 0, sizeof(StorageAdapter));
     adapter->initialized = true;
     
-    // Check SD card presence
+    // Check SD card presence (for /apps_data/bible path)
     adapter->sd_card_present = storage_adapter_check_sd_card(adapter);
     
-    if(adapter->sd_card_present) {
-        // Check if assets directory and files exist
-        adapter->assets_available = storage_adapter_check_assets_exist(adapter);
-        
-        if(adapter->assets_available) {
-            // Try to read verse index header to get total verses
-            storage_adapter_read_verse_index_header(adapter);
-        }
+    // Prefer SD /apps_data/bible; fall back to bundled FAP assets (works even without SD)
+    adapter->assets_available = storage_adapter_check_assets_exist(adapter);
+    if(adapter->assets_available) {
+        storage_adapter_read_verse_index_header(adapter);
     }
     
-    return adapter->sd_card_present;
+    return adapter->initialized;
 }
 
 /* Cleanup storage adapter */
@@ -120,8 +116,8 @@ bool storage_adapter_load_index(StorageAdapter* adapter) {
         return false;
     }
     
-    // Open verse index file
-    if(!file_stream_open(stream, STORAGE_VERSE_INDEX, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    // Open verse index file (SD path or bundled assets path)
+    if(!file_stream_open(stream, adapter->path_verse_index, FSAM_READ, FSOM_OPEN_EXISTING)) {
         stream_free(stream);
         furi_record_close(RECORD_STORAGE);
         strncpy(adapter->last_error, "Failed to open verse_index.bin", sizeof(adapter->last_error) - 1);
@@ -236,7 +232,7 @@ size_t storage_adapter_get_verse_text(
         return 0;
     }
     
-    if(!file_stream_open(stream, STORAGE_BIBLE_TEXT, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    if(!file_stream_open(stream, adapter->path_bible_text, FSAM_READ, FSOM_OPEN_EXISTING)) {
         stream_free(stream);
         furi_record_close(RECORD_STORAGE);
         strncpy(adapter->last_error, "Failed to open bible_text.bin", sizeof(adapter->last_error) - 1);
@@ -330,7 +326,7 @@ static bool storage_adapter_check_sd_card(StorageAdapter* adapter) {
     return present;
 }
 
-/* Internal helper: Check if asset files exist */
+/* Internal helper: Check if asset files exist (SD path or bundled FAP assets) */
 static bool storage_adapter_check_assets_exist(StorageAdapter* adapter) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     if(!storage) {
@@ -340,41 +336,53 @@ static bool storage_adapter_check_assets_exist(StorageAdapter* adapter) {
         return false;
     }
     
-    // Check if base directory exists (try to open a file in it)
     Stream* test_stream = file_stream_alloc(storage);
     if(!test_stream) {
         furi_record_close(RECORD_STORAGE);
         if(adapter) {
-            snprintf(adapter->last_error, sizeof(adapter->last_error), 
-                     "Failed to allocate test stream");
+            snprintf(adapter->last_error, sizeof(adapter->last_error), "Failed to allocate test stream");
         }
         return false;
     }
     
-    // Check required files by trying to open them
-    const char* required_files[] = {
-        STORAGE_BIBLE_TEXT,
-        STORAGE_VERSE_INDEX,
-    };
-    
-    bool all_exist = true;
-    for(size_t i = 0; i < sizeof(required_files) / sizeof(required_files[0]); i++) {
-        if(file_stream_open(test_stream, required_files[i], FSAM_READ, FSOM_OPEN_EXISTING)) {
+    /* Try SD path first (/apps_data/bible/) */
+    bool sd_ok = file_stream_open(test_stream, STORAGE_BIBLE_TEXT, FSAM_READ, FSOM_OPEN_EXISTING);
+    if(sd_ok) {
+        file_stream_close(test_stream);
+        sd_ok = file_stream_open(test_stream, STORAGE_VERSE_INDEX, FSAM_READ, FSOM_OPEN_EXISTING);
+        if(sd_ok) {
             file_stream_close(test_stream);
-        } else {
-            all_exist = false;
-            if(adapter) {
-                snprintf(adapter->last_error, sizeof(adapter->last_error), 
-                         "Required file not found: %s", required_files[i]);
-            }
-            break;
+            adapter->path_bible_text = STORAGE_BIBLE_TEXT;
+            adapter->path_verse_index = STORAGE_VERSE_INDEX;
+            adapter->use_bundled_assets = false;
+            stream_free(test_stream);
+            furi_record_close(RECORD_STORAGE);
+            return true;
         }
     }
+    file_stream_close(test_stream);
+    
+    /* Fall back to bundled FAP assets (unpacked to /ext/apps_assets/... or /assets) */
+    if(file_stream_open(test_stream, APP_ASSETS_PATH("bible_text.bin"), FSAM_READ, FSOM_OPEN_EXISTING)) {
+        file_stream_close(test_stream);
+        if(file_stream_open(test_stream, APP_ASSETS_PATH("verse_index.bin"), FSAM_READ, FSOM_OPEN_EXISTING)) {
+            file_stream_close(test_stream);
+            adapter->path_bible_text = APP_ASSETS_PATH("bible_text.bin");
+            adapter->path_verse_index = APP_ASSETS_PATH("verse_index.bin");
+            adapter->use_bundled_assets = true;
+            stream_free(test_stream);
+            furi_record_close(RECORD_STORAGE);
+            return true;
+        }
+    }
+    file_stream_close(test_stream);
     
     stream_free(test_stream);
     furi_record_close(RECORD_STORAGE);
-    
-    return all_exist;
+    if(adapter) {
+        strncpy(adapter->last_error, "Bible assets not found (check SD or reinstall app)", sizeof(adapter->last_error) - 1);
+    }
+    return false;
 }
 
 /* Internal helper: Read verse index header */
@@ -388,7 +396,7 @@ static bool storage_adapter_read_verse_index_header(StorageAdapter* adapter) {
         return false;
     }
     
-    if(!file_stream_open(stream, STORAGE_VERSE_INDEX, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    if(!file_stream_open(stream, adapter->path_verse_index, FSAM_READ, FSOM_OPEN_EXISTING)) {
         stream_free(stream);
         furi_record_close(RECORD_STORAGE);
         return false;

@@ -203,8 +203,9 @@ This roadmap maps the features described in the documentation to implementation 
 
 **Goal**: Improve stability, performance, and user experience.
 
-### 5.1 Error Handling & Recovery
-- [ ] Implement guided recovery mode (per system-architecture.md)
+### 5.1 Error Handling & Recovery ✅
+- [x] Try bundled assets when SD absent (no-SD devices get full Bible from FAP)
+- [x] Guided message when no assets: menu header "(No data: reinstall or add SD)"; verse placeholder suggests reinstall or SD path
 - [ ] Add detailed error messages for missing assets
 - [ ] Handle corrupt file scenarios gracefully
 - [ ] Add asset validation on startup

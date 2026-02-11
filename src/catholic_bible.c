@@ -272,8 +272,8 @@ static const char* cb_get_verse_text(CatholicBibleApp* app, size_t book_index, u
         }
     }
 
-    // Placeholder for other books/chapters
-    return "(Verse text not yet available. Add Bible assets to SD card.)";
+    // Placeholder when verse not in index or no assets
+    return "(Verse not found. Reinstall app or add SD: /apps_data/bible/)";
 }
 
 /* ============================================================================
@@ -313,7 +313,11 @@ static void catholic_bible_scene_menu_on_enter(void* context) {
     CatholicBibleApp* app = context;
 
     submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "Catholic Bible");
+    if(storage_adapter_assets_available(&app->storage)) {
+        submenu_set_header(app->submenu, "Catholic Bible");
+    } else {
+        submenu_set_header(app->submenu, "Catholic Bible\n(No data: reinstall or add SD)");
+    }
 
     submenu_add_item(app->submenu, "Browse", MenuItemBrowse, catholic_bible_submenu_callback, app);
     submenu_add_item(app->submenu, "Last read", MenuItemLastRead, catholic_bible_submenu_callback, app);
@@ -567,11 +571,11 @@ static void catholic_bible_scene_browse_verses_on_exit(void* context) {
  * Custom Reader View with Scrolling
  * ==========================================================================*/
 
-#define READER_HEADER_HEIGHT 16
+#define READER_HEADER_HEIGHT 18
 #define READER_LINE_HEIGHT   2
 #define READER_LEFT_MARGIN   4
 #define READER_RIGHT_MARGIN  4
-#define READER_TOP_MARGIN    2
+#define READER_TOP_MARGIN    8
 #define READER_MAX_LINE_LEN  120
 
 /* Draw one line only if it's in the visible band; return next Y (top of next line). */
@@ -720,8 +724,8 @@ static void reader_viewport_draw_callback(Canvas* canvas, void* context) {
         }
     }
     
-    /* Separator below header; content is strictly below this */
-    canvas_draw_line(canvas, 0, READER_HEADER_HEIGHT - 1, 128, READER_HEADER_HEIGHT - 1);
+    /* Separator below header; keep clear of first line of verse text (no run-over) */
+    canvas_draw_line(canvas, 0, READER_HEADER_HEIGHT - 2, 128, READER_HEADER_HEIGHT - 2);
     
     /* Verse body: word-wrapped, clipped to content area */
     canvas_set_font(canvas, FontKeyboard);
@@ -838,6 +842,8 @@ static bool catholic_bible_scene_reader_on_event(void* context, SceneManagerEven
         if(max_verses == 0) max_verses = 1;
 
         if(event.event == READER_EVT_BACK) {
+            /* Exit to Chapter selection (skip Verse list) */
+            scene_manager_previous_scene(app->scene_manager);
             scene_manager_previous_scene(app->scene_manager);
             return true;
         }

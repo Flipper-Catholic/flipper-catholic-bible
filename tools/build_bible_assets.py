@@ -17,6 +17,7 @@ import json
 import os
 import struct
 import sys
+from typing import Optional
 
 VERSE_INDEX_MAGIC = 0x56494458  # "VIDX" little-endian
 VERSE_INDEX_VERSION = 1
@@ -88,18 +89,38 @@ def build(source_path: str, output_dir: str) -> None:
     print("Copy contents of the output dir to SD: /apps_data/bible/")
 
 
+def find_bible_source(root: str) -> Optional[str]:
+    """Try likely locations for bible_source.json (wrong-spot tolerance)."""
+    candidates = [
+        os.path.join(root, "assets", "source", "bible_source.json"),
+        os.path.join(root, "bible_source.json"),
+        os.path.join(root, "assets", "bible_source.json"),
+        os.path.join(os.getcwd(), "bible_source.json"),
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+    return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build Bible SD assets for Flipper Catholic Bible app")
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    default_input = os.path.join(root, "assets", "source", "bible_source.json")
     default_output = os.path.join(root, "dist", "apps_data", "bible")
-    parser.add_argument("--input", "-i", default=default_input, help="Input JSON path")
+    parser.add_argument("--input", "-i", default=None, help="Input JSON path (default: search then assets/source/bible_source.json)")
     parser.add_argument("--output", "-o", default=default_output, help="Output directory")
     args = parser.parse_args()
-    if not os.path.isfile(args.input):
-        print(f"Error: input file not found: {args.input}", file=sys.stderr)
+    input_path = args.input
+    used_search = False
+    if input_path is None:
+        used_search = True
+        input_path = find_bible_source(root) or os.path.join(root, "assets", "source", "bible_source.json")
+    if not os.path.isfile(input_path):
+        print(f"Error: input file not found: {input_path}", file=sys.stderr)
+        if used_search:
+            print("  Searched: assets/source/, project root, assets/, cwd. Use -i PATH to specify.", file=sys.stderr)
         sys.exit(1)
-    build(args.input, args.output)
+    build(input_path, args.output)
 
 
 if __name__ == "__main__":

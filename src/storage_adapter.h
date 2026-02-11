@@ -41,16 +41,21 @@ typedef struct {
     bool initialized;
     bool sd_card_present;
     bool assets_available;
-    
+    bool use_bundled_assets;  /* true = read from FAP bundle (/assets), false = /apps_data/bible */
+
+    /* Paths to use (set by init: either SD or APP_ASSETS_PATH) */
+    const char* path_bible_text;
+    const char* path_verse_index;
+
     // File streams (opened on demand)
     void* bible_text_stream;  // Stream* handle (opaque to avoid include)
     void* verse_index_stream; // Stream* handle (opaque to avoid include)
-    
+
     // Cached index data
     uint32_t total_verses;
     VerseIndexRecord* index_cache;  // NULL if not loaded
     size_t index_cache_size;
-    
+
     // Error state
     char last_error[128];
 } StorageAdapter;
