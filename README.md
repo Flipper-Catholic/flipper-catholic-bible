@@ -22,6 +22,15 @@ The design intentionally avoids commentary, notes, audio, or online features to 
 
 ---
 
+## 🌐 Product site
+
+A one-page product site is in **`website/`** and is deployed to **GitHub Pages** on push to `main`:
+
+- **URL (once enabled):** [https://flipper-catholic.github.io/flipper-catholic-bible/](https://flipper-catholic.github.io/flipper-catholic-bible/)
+- **To enable:** In this repo go to **Settings → Pages**. Set **Source** to **GitHub Actions**. The workflow [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) will run on each push to `main` and publish the `website/` folder.
+
+---
+
 ## 📦 Current Features
 
 ### ✅ Implemented

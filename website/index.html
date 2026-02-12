@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catholic Bible – Flipper Zero</title>
+  <meta name="description" content="Offline Catholic Bible app for Flipper Zero. Douay-Rheims, 73 books, bookmarks, history, Missal, Guides.">
+  <style>
+    :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --card: #161b22; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--fg); line-height: 1.6; min-height: 100vh; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem; }
+    h1 { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
+    .tagline { color: var(--muted); font-size: 1.05rem; margin-bottom: 2rem; }
+    .card { background: var(--card); border: 1px solid #30363d; border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 1rem; font-weight: 600; margin: 0 0 0.75rem; color: var(--fg); }
+    ul { margin: 0; padding-left: 1.25rem; }
+    li { margin-bottom: 0.35rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .links { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; }
+    .links a { display: inline-block; padding: 0.5rem 1rem; background: var(--card); border: 1px solid #30363d; border-radius: 6px; font-size: 0.9rem; }
+    .links a:hover { border-color: var(--accent); }
+    footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #21262d; color: var(--muted); font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>✝️ Catholic Bible</h1>
+    <p class="tagline">Offline Douay-Rheims Bible for Flipper Zero — full Catholic canon, bookmarks, history, Missal &amp; Guides.</p>
+
+    <div class="card">
+      <h2>What it is</h2>
+      <p>A fully offline app that turns your Flipper Zero into a portable Scripture reader. No account, no network — just the text. The full Bible (73 books, 34,827 verses) is bundled in the FAP; no SD card required to read.</p>
+    </div>
+
+    <div class="card">
+      <h2>Features</h2>
+      <ul>
+        <li><strong>Browse</strong> — Book → Chapter → Verse navigation (all 73 books)</li>
+        <li><strong>Last read</strong> — Jump back to your last verse</li>
+        <li><strong>Bookmarks</strong> — Mark verses; list and open from the menu</li>
+        <li><strong>History</strong> — Recent verses; tap to reopen</li>
+        <li><strong>Missal</strong> — Today’s Mass, liturgical calendar, Mass prayers &amp; responses, readings (when <code>missal.bin</code> is present)</li>
+        <li><strong>Prayers</strong> — Common prayers from <code>devotional.bin</code></li>
+        <li><strong>Guides</strong> — Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments, Marrying Catholic (scaffold)</li>
+        <li><strong>Rosary &amp; Confession</strong> — Menus in place; content via build assets</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Install</h2>
+      <p>Install the Catholic Bible FAP from the Flipper app catalog (or build from source with <code>ufbt build</code>). With Flipper connected: <code>ufbt launch</code> to deploy. Optional: copy assets to SD <code>/apps_data/bible/</code> to override bundled files.</p>
+    </div>
+
+    <div class="links">
+      <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible">Repository</a>
+      <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/blob/main/README.md">README &amp; install</a>
+      <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/blob/main/STATUS_REPORT.md">Status report</a>
+      <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/blob/main/LICENSE">License (MIT)</a>
+    </div>
+
+    <footer>
+      Catholic Bible for Flipper Zero · Gilbert Roberts · Douay-Rheims (public domain) · No warranty.
+    </footer>
+  </div>
+</body>
+</html>
