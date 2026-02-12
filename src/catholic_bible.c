@@ -925,40 +925,22 @@ static void catholic_bible_scene_reader_on_exit(void* context) {
     history_manager_save(&app->history);
 }
 
-/* Search: text input callback – run search and go to results */
-static void catholic_bible_search_done_callback(void* context) {
-    CatholicBibleApp* app = context;
-    /* Result already written to app->search_query_buf by text_input_set_result_callback */
-    app->search_query_buf[SEARCH_MAX_QUERY_LEN - 1] = '\0';
-    app->search_result_count = 0;
-    if(search_adapter_available(&app->search)) {
-        app->search_result_count = search_adapter_lookup(
-            &app->search, app->search_query_buf,
-            app->search_result_ids, SEARCH_MAX_RESULTS);
-    }
-    scene_manager_next_scene(app->scene_manager, CatholicBibleSceneSearchResults);
-}
-
 /* Scene: Search – show text input when index available */
 static void catholic_bible_scene_search_on_enter(void* context) {
     CatholicBibleApp* app = context;
-    if(search_adapter_available(&app->search)) {
-        text_input_set_header_text(app->text_input, "Search word");
-        text_input_set_result_callback(app->text_input, catholic_bible_search_done_callback, app, app->search_query_buf, SEARCH_MAX_QUERY_LEN, true);
-        text_input_set_minimum_length(app->text_input, 2);
-        text_input_reset(app->text_input);
-        view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewTextInput);
-    } else {
-        widget_reset(app->widget);
-        widget_add_string_element(app->widget, 4, 8, AlignLeft, AlignTop, FontPrimary, "Search");
-        widget_add_string_element(app->widget, 4, 22, AlignLeft, AlignTop, FontSecondary,
-                                  "Search index not found.");
-        widget_add_string_element(app->widget, 4, 36, AlignLeft, AlignTop, FontSecondary,
-                                  "Rebuild FAP with search");
-        widget_add_string_element(app->widget, 4, 50, AlignLeft, AlignTop, FontSecondary,
-                                  "index (build_search_index).");
-        view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
-    }
+    /* Phase 3 (advanced search) is not enabled on-device yet.
+     * For now, always show a placeholder instead of opening the TextInput
+     * to avoid NULL dereferences and memory pressure.
+     */
+    widget_reset(app->widget);
+    widget_add_string_element(app->widget, 4, 8, AlignLeft, AlignTop, FontPrimary, "Search");
+    widget_add_string_element(app->widget, 4, 22, AlignLeft, AlignTop, FontSecondary,
+                              "Full-text search is not");
+    widget_add_string_element(app->widget, 4, 36, AlignLeft, AlignTop, FontSecondary,
+                              "enabled in this build.");
+    widget_add_string_element(app->widget, 4, 50, AlignLeft, AlignTop, FontSecondary,
+                              "Browse or use Guides instead.");
+    view_dispatcher_switch_to_view(app->view_dispatcher, CatholicBibleViewWidget);
 }
 
 static bool catholic_bible_scene_search_on_event(void* context, SceneManagerEvent event) {

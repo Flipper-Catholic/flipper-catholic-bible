@@ -43,15 +43,16 @@ Before starting device testing, ensure:
 
 ---
 
-### 3. Phase 6 & Guides (4 min)
-1. From main menu, test:
+### 3. Search, Phase 6 & Guides (4 min)
+1. **Search** → Opens static placeholder only ("Full-text search is not enabled in this build"). No text input; no crash.
+2. From main menu, test:
    - **Missal** → Submenu → Today's Mass / Liturgical Calendar / Mass Prayers / Mass Responses / Browse by Date open list or text (missal.bin); Readings Search = "Coming soon"
    - **Rosary** → Submenu → Select any option → Placeholder
    - **Prayers** → List of prayers → Select one → Scrollable PrayerView (devotional.bin)
    - **Confession** → Submenu → Select any option → Placeholder
    - **Guides** → Submenu (Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments, Marrying Catholic) → Select any → Scrollable guide text
 
-**Expected:** Missal and Prayers show content when .bin present; Guides show scaffold text; Rosary/Confession show placeholders
+**Expected:** Search shows placeholder only; Missal and Prayers show content when .bin present; Guides show scaffold text; Rosary/Confession show placeholders
 
 ---
 

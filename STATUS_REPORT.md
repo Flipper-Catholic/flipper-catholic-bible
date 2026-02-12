@@ -57,12 +57,12 @@ The project has made significant progress with core infrastructure complete and 
 #### Phase 2.2: SD Card Storage Adapter ✅ COMPLETE
 - ✅ Storage adapter module implemented
 - ✅ SD card detection and asset validation
-- ✅ Verse index loading and caching
-- ✅ Verse text lookup from SD card
-- ✅ Integration with reader (fallback to hardcoded)
+- ✅ Verse text lookup from SD or bundled assets (per-verse read; no full index in RAM to avoid OOM)
+- ✅ Verse counts from books_meta.c for all 73 books (no verse index cache loaded)
+- ✅ Integration with reader (fallback to hardcoded when needed)
 - ✅ Error handling for missing SD card
 
-**Status**: Infrastructure complete. Ready for asset files.
+**Status**: Infrastructure complete. Full index intentionally not cached in RAM for device stability.
 
 #### Phase 4: Bookmarks & History ✅ COMPLETE
 - ✅ **4.1 Bookmark Manager**: Full implementation with persistent storage
@@ -93,23 +93,20 @@ The project has made significant progress with core infrastructure complete and 
 **Status:** Addressed  
 **Description:** Full Douay-Rheims Bible (73 books, 34,827 verses) is bundled in the FAP; no SD required. Optional: place assets on SD `/apps_data/bible/` to override. Build tool and source (`bible_source.json`) in repo.
 
-### 🟡 **P2: Verse Counts Incomplete**
-**Status:** Partial implementation  
-**Impact:** Only Genesis has accurate verse counts  
-**Description:** Genesis (all 50 chapters) has real verse counts. Other books use placeholder (50 verses).
+### ✅ **Resolved: OOM on Browse / History / Last Read**
+**Status:** Addressed  
+**Description:** The app no longer loads the full verse index into RAM. Verse counts come from books_meta.c; verse text is read per-verse from bible_text.bin. Browse → Chapter → Verses and History/Last read open the reader without triggering out-of-memory reboots.
 
-**Current Workaround:** Navigation works, but verse lists may be inaccurate for non-Genesis books.
-
-**Required Work:**
-- Add verse count data for remaining 72 books
-- Replace placeholder with real data
+### ✅ **Verse Counts**
+**Status:** Implemented  
+**Description:** Verse counts for all 73 books are provided by books_meta.c (from export_verse_counts.py / bible_source.json). No in-RAM verse index is used for chapter/verse lists.
 
 ### 🟡 **P1: Search Not Implemented**
-**Status:** Placeholder only  
+**Status:** Placeholder only (intentional)  
 **Impact:** Search feature unavailable  
-**Description:** Search scene exists but is placeholder. Phase 3 not started.
+**Description:** Search menu shows a static placeholder ("Full-text search is not enabled in this build"); no text input is shown, to avoid device crashes. Phase 3 full-text search deferred.
 
-**Current Workaround:** Users must navigate manually to verses.
+**Current Workaround:** Users navigate via Browse, Last read, or History.
 
 **Required Work:**
 - Phase 3: Search index build

@@ -1,7 +1,14 @@
 # Catholic Bible App - Device Testing Checklist
 **Flipper Zero Application Testing**  
-**Version:** Pre-Release (Phase 1, 2, 4, 6.1, 7 Guides scaffold)  
+**Version:** Pre-Release (Phase 1, 2, 4, 6.1, 7 Guides scaffold; OOM fix, Search placeholder)  
 **Date:** January 2026
+
+---
+
+## Known Behavior / Device Stability (as of this build)
+- **Browse → Book → Chapter → Verse → Reader:** Should complete without reboot. Verse index is not loaded into RAM; counts come from books_meta.c.
+- **History / Last read:** Selecting an entry opens the reader without OOM. Re-test after any storage/adapter changes.
+- **Search:** Opens a static placeholder only ("Full-text search is not enabled in this build"). No text input; do not expect search-by-keyword. This is intentional.
 
 ---
 
@@ -404,11 +411,12 @@
 
 ### 8.1 Search Scene
 - [ ] **TC-131**: Selecting "Search" from main menu opens search scene
-- [ ] **TC-132**: Search scene displays placeholder message
-- [ ] **TC-133**: Placeholder is clear: "Search functionality coming in Phase 3"
+- [ ] **TC-132**: Search scene displays static placeholder (no text input)
+- [ ] **TC-133**: Placeholder text: "Full-text search is not" / "enabled in this build." / "Browse or use Guides instead."
 - [ ] **TC-134**: Back button returns to main menu
+- [ ] **TC-135**: No crash when opening Search or pressing keys (placeholder only)
 
-**Expected Result:** Search scene shows placeholder (expected, not a bug)
+**Expected Result:** Search scene shows placeholder only; no search input (intentional for stability)
 
 **Notes:** _________________________________________________
 
@@ -417,10 +425,10 @@
 ## 9. About Scene
 
 ### 9.1 About Display
-- [ ] **TC-135**: Selecting "About" from main menu opens about scene
-- [ ] **TC-136**: About scene displays app information
-- [ ] **TC-137**: Information is readable and accurate
-- [ ] **TC-138**: Back button returns to main menu
+- [ ] **TC-136**: Selecting "About" from main menu opens about scene
+- [ ] **TC-137**: About scene displays app information
+- [ ] **TC-138**: Information is readable and accurate
+- [ ] **TC-139**: Back button returns to main menu
 
 **Expected Result:** About scene displays correctly
 
@@ -431,15 +439,15 @@
 ## 10. Integration Testing
 
 ### 10.1 Complete User Flow
-- [ ] **TC-139**: Launch app → Browse → Genesis → Chapter 1 → Verse 1 → Read
-- [ ] **TC-140**: Navigate through verses 1-10
-- [ ] **TC-141**: Navigate to Bookmarks (check if bookmark was created)
-- [ ] **TC-142**: Navigate to History (verify tracking)
-- [ ] **TC-143**: Navigate to Phase 6 features (verify stubs work)
-- [ ] **TC-144**: Exit app
-- [ ] **TC-145**: Relaunch app
-- [ ] **TC-146**: Verify bookmarks/history persist
-- [ ] **TC-147**: Complete flow works end-to-end
+- [ ] **TC-140**: Launch app → Browse → Genesis → Chapter 1 → Verse 1 → Read
+- [ ] **TC-141**: Navigate through verses 1-10
+- [ ] **TC-142**: Navigate to Bookmarks (check if bookmark was created)
+- [ ] **TC-143**: Navigate to History (verify tracking)
+- [ ] **TC-144**: Navigate to Phase 6 features (verify stubs work)
+- [ ] **TC-145**: Exit app
+- [ ] **TC-146**: Relaunch app
+- [ ] **TC-147**: Verify bookmarks/history persist
+- [ ] **TC-148**: Complete flow works end-to-end
 
 **Expected Result:** Complete user flow works seamlessly
 

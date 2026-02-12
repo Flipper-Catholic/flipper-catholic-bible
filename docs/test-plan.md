@@ -7,12 +7,16 @@ This document defines how correctness, stability, and readiness are verified for
 
 ## Test Scope
 
+### Current build notes (device stability)
+- **Browse / History / Last read:** Verse index is not loaded into RAM; counts from books_meta.c. These flows should not trigger OOM or reboot.
+- **Search:** Placeholder only ("Full-text search is not enabled in this build"). No text input; Phase 3 search deferred.
+
 ### In Scope
 - Asset detection and recovery
 - Canon loading and navigation
 - Verse rendering and paging
 - Bookmarks and history
-- Indexed search (offline)
+- Indexed search (offline) – currently placeholder only
 - Performance and stability
 - Catalog readiness
 

@@ -85,7 +85,9 @@ ufbt build
 ufbt launch
 ```
 
-**Build note:** If `tools/verse_counts_generated.c` exists and the build fails with duplicate-symbol errors, rename it to `verse_counts_generated.c.inactive` (verse counts are already in `src/books_meta.c`).
+**Build note:** If `tools/verse_counts_generated.c` exists and the build fails with duplicate-symbol errors, move it out of the build (e.g. `mv tools/verse_counts_generated.c .build_exclude/`) so only `src/books_meta.c` provides verse counts.
+
+**Deploy:** With the Flipper connected via USB, run `ufbt launch`. The first time (or after a full build) it installs the FAP to the device; allow 2–3 minutes for the transfer (~7 MB at USB speed).
 
 The repo includes pre-built assets in the `files/` folder so that `ufbt build` produces a FAP that contains the full Bible. The app appears under **Apps → Tools** with the cross icon.
 

@@ -24,6 +24,7 @@ dist/
 build/
 .ufbt/
 tools/verse_counts_generated.c
+.build_exclude/
 cat >> .gitignore <<'EOF'
 
 # macOS

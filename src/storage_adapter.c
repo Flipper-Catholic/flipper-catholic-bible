@@ -89,7 +89,12 @@ bool storage_adapter_validate_assets(StorageAdapter* adapter) {
     return storage_adapter_check_assets_exist(adapter);
 }
 
-/* Load verse index into memory */
+/* Load verse index into memory.
+ * NOTE: For RAM-constrained devices we avoid caching the full index (tens of KB)
+ * in memory. The current app uses hardcoded verse counts (books_meta.c) and does
+ * not require the in-RAM index for normal reading. Search results mapping may
+ * later stream from verse_index.bin on demand.
+ */
 bool storage_adapter_load_index(StorageAdapter* adapter) {
     if(!adapter || !adapter->initialized || !adapter->assets_available) {
         if(adapter) {
@@ -97,89 +102,10 @@ bool storage_adapter_load_index(StorageAdapter* adapter) {
         }
         return false;
     }
-    
-    // If already loaded, return success
-    if(adapter->index_cache) {
-        return true;
-    }
-    
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    if(!storage) {
-        strncpy(adapter->last_error, "Failed to open storage", sizeof(adapter->last_error) - 1);
-        return false;
-    }
-    
-    Stream* stream = file_stream_alloc(storage);
-    if(!stream) {
-        furi_record_close(RECORD_STORAGE);
-        strncpy(adapter->last_error, "Failed to allocate stream", sizeof(adapter->last_error) - 1);
-        return false;
-    }
-    
-    // Open verse index file (SD path or bundled assets path)
-    if(!file_stream_open(stream, adapter->path_verse_index, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        stream_free(stream);
-        furi_record_close(RECORD_STORAGE);
-        strncpy(adapter->last_error, "Failed to open verse_index.bin", sizeof(adapter->last_error) - 1);
-        return false;
-    }
-    
-    // Read header
-    VerseIndexHeader header;
-    size_t bytes_read = stream_read(stream, (uint8_t*)&header, sizeof(header));
-    if(bytes_read != sizeof(header)) {
-        stream_free(stream);
-        furi_record_close(RECORD_STORAGE);
-        strncpy(adapter->last_error, "Failed to read index header", sizeof(adapter->last_error) - 1);
-        return false;
-    }
-    
-    // Validate magic and version
-    if(header.magic != VERSE_INDEX_MAGIC) {
-        stream_free(stream);
-        furi_record_close(RECORD_STORAGE);
-        strncpy(adapter->last_error, "Invalid index magic number", sizeof(adapter->last_error) - 1);
-        return false;
-    }
-    
-    if(header.version != VERSE_INDEX_VERSION) {
-        stream_free(stream);
-        furi_record_close(RECORD_STORAGE);
-        snprintf(adapter->last_error, sizeof(adapter->last_error), 
-                 "Unsupported index version: %u (expected %d)", 
-                 header.version, VERSE_INDEX_VERSION);
-        return false;
-    }
-    
-    adapter->total_verses = header.total_verses;
-    
-    // Allocate cache
-    size_t cache_size = header.total_verses * sizeof(VerseIndexRecord);
-    adapter->index_cache = malloc(cache_size);
-    if(!adapter->index_cache) {
-        stream_free(stream);
-        furi_record_close(RECORD_STORAGE);
-        strncpy(adapter->last_error, "Failed to allocate index cache", sizeof(adapter->last_error) - 1);
-        return false;
-    }
-    
-    // Read all index records
-    bytes_read = stream_read(stream, (uint8_t*)adapter->index_cache, cache_size);
-    if(bytes_read != cache_size) {
-        free(adapter->index_cache);
-        adapter->index_cache = NULL;
-        stream_free(stream);
-        furi_record_close(RECORD_STORAGE);
-        strncpy(adapter->last_error, "Failed to read index records", sizeof(adapter->last_error) - 1);
-        return false;
-    }
-    
-    adapter->index_cache_size = header.total_verses;
-    
-    stream_free(stream);
-    furi_record_close(RECORD_STORAGE);
-    
-    return true;
+    /* Header is already read in storage_adapter_read_verse_index_header().
+     * Skip allocating adapter->index_cache here to avoid out-of-memory.
+     */
+    return false;
 }
 
 /* Get verse text from SD card */
@@ -264,33 +190,21 @@ size_t storage_adapter_get_verse_text(
     return bytes_read;
 }
 
-/* Get verse count for a chapter */
+/* Get verse count for a chapter
+ * NOTE: We intentionally avoid loading the full verse index into RAM here.
+ * Verse counts are provided by books_meta.c and the app's cb_chapter_verses()
+ * helper falls back to that data when storage_adapter_get_verse_count()
+ * returns 0.
+ */
 uint16_t storage_adapter_get_verse_count(
     StorageAdapter* adapter,
     size_t book_index,
     uint16_t chapter
 ) {
-    if(!adapter || !adapter->assets_available) {
-        return 0;
-    }
-    
-    // Load index if not already loaded
-    if(!adapter->index_cache) {
-        if(!storage_adapter_load_index(adapter)) {
-            return 0;
-        }
-    }
-    
-    // Count verses in this chapter
-    uint16_t count = 0;
-    for(size_t i = 0; i < adapter->index_cache_size; i++) {
-        VerseIndexRecord* record = &adapter->index_cache[i];
-        if(record->book_id == book_index && record->chapter == chapter) {
-            count++;
-        }
-    }
-    
-    return count;
+    (void)adapter;
+    (void)book_index;
+    (void)chapter;
+    return 0;
 }
 
 /* Get (book_id, chapter, verse) from verse_id (0-based) */
@@ -301,15 +215,15 @@ bool storage_adapter_get_ref_from_verse_id(
     uint16_t* chapter,
     uint16_t* verse
 ) {
-    if(!adapter || !book_id || !chapter || !verse) return false;
-    if(!adapter->assets_available) return false;
-    if(!adapter->index_cache && !storage_adapter_load_index(adapter)) return false;
-    if(verse_id >= adapter->index_cache_size) return false;
-    VerseIndexRecord* r = &adapter->index_cache[verse_id];
-    *book_id = r->book_id;
-    *chapter = r->chapter;
-    *verse = r->verse;
-    return true;
+    (void)adapter;
+    (void)verse_id;
+    (void)book_id;
+    (void)chapter;
+    (void)verse;
+    /* Disabled for now to avoid loading full verse index into RAM.
+     * Search results mapping can be reimplemented with streaming access.
+     */
+    return false;
 }
 
 /* Get last error message */

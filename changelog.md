@@ -8,7 +8,9 @@ v0.4 (unreleased):
 - Phase 6.1 Missal: missal_loader + missal.bin; Today's Mass, Liturgical Calendar, Mass Prayers, Mass Responses, Browse by Date (readings); MissalList and MissalText scenes.
 - Phase 7 Guides: Top-level Guides menu with 7 items (Order of Mass, OCIA, Lenten, Easter, Pentecost, Sacraments Guide, Marrying Catholic); GuideView with scaffold content; Sacraments and Marrying Catholic full placeholder text.
 - Refactor: DEVOTIONAL_DISPLAY_BUF_SIZE constant for display buffer.
-- Docs: phase6-phase7-plan (Sacraments & Marrying Catholic plans); README/STATUS/checklists updated.
+- Device stability: Verse index no longer loaded into RAM (avoids OOM on Browse → Chapter, History, Last read). Verse counts from books_meta.c; verse text read per-verse from bible_text.bin.
+- Search: Always show placeholder screen ("Full-text search is not enabled in this build"); no TextInput to avoid crashes. Phase 3 search deferred.
+- Docs: phase6-phase7-plan (Sacraments & Marrying Catholic); README/STATUS/checklists updated; testing checklist and doc housekeeping.
 
 v0.3 (unreleased):
 - Phase 1.3: Verse counts for all 73 books (from bible_source.json via export_verse_counts.py).
