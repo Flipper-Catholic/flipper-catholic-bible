@@ -14,10 +14,19 @@
     .tagline { color: var(--muted); font-size: 1.05rem; margin-bottom: 2rem; }
     .card { background: var(--card); border: 1px solid #30363d; border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
     .card h2 { font-size: 1rem; font-weight: 600; margin: 0 0 0.75rem; color: var(--fg); }
+    .card h3 { font-size: 0.95rem; font-weight: 600; margin: 1.25rem 0 0.5rem; color: var(--fg); }
+    .card h3:first-of-type { margin-top: 0; }
     ul { margin: 0; padding-left: 1.25rem; }
     li { margin-bottom: 0.35rem; }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
+    .download-box { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 0.75rem 1rem; margin: 0.5rem 0 0.75rem; font-size: 0.9rem; }
+    .download-box strong { display: block; margin-bottom: 0.35rem; color: var(--muted); }
+    .download-box a { word-break: break-all; }
+    .install-all { background: #0d1117; border: 1px solid #58a6ff; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+    .install-all h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+    .install-all p { margin: 0.35rem 0 0; font-size: 0.9rem; }
+    .install-all ol { margin: 0.5rem 0 0 1.25rem; padding-left: 0.5rem; font-size: 0.9rem; }
     .links { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; }
     .links a { display: inline-block; padding: 0.5rem 1rem; background: var(--card); border: 1px solid #30363d; border-radius: 6px; font-size: 0.9rem; }
     .links a:hover { border-color: var(--accent); }
@@ -51,6 +60,99 @@
     <div class="card">
       <h2>Install</h2>
       <p>Install the Catholic Bible FAP from the Flipper app catalog (or build from source with <code>ufbt build</code>). With Flipper connected: <code>ufbt launch</code> to deploy. Optional: copy assets to SD <code>/apps_data/bible/</code> to override bundled files.</p>
+    </div>
+
+    <div class="card">
+      <h2>Data files &amp; SD card setup</h2>
+      <p>All data files go in <strong>one folder</strong> on your Flipper’s microSD card: <code>apps_data/bible</code>. If you connect the Flipper via USB, open <strong>qFlipper</strong> and use the file browser to go to the SD card; create the folder <code>apps_data</code>, then inside it create <code>bible</code>. Or remove the SD card, put it in your computer’s card reader, and create <code>apps_data/bible</code> in the root of the SD. Put every file listed below directly inside <code>apps_data/bible</code> (and for search, put the <code>search_shards</code> folder there too).</p>
+
+      <div class="install-all">
+        <h3>Install everything (one download)</h3>
+        <div class="download-box" style="margin-bottom: 0.5rem;">
+          <strong>Download everything</strong>
+          <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/archive/refs/heads/main.zip">Repository ZIP (main branch)</a> — contains the <code>files</code> folder with all data files.
+        </div>
+        <p><strong>Install everything:</strong></p>
+        <ol>
+          <li>Download the ZIP from the link above and unzip it on your computer.</li>
+          <li>On your Flipper’s SD card, create the folder <code>apps_data/bible</code> (use qFlipper’s file browser with the Flipper connected, or put the SD in your computer and create the folder there).</li>
+          <li>Copy the <strong>entire contents</strong> of the unzipped repo’s <code>files</code> folder into <code>apps_data/bible/</code>. That means all <code>.bin</code> files and the <code>search_shards</code> folder. You should end up with <code>apps_data/bible/bible_text.bin</code>, <code>apps_data/bible/verse_index.bin</code>, <code>apps_data/bible/missal.bin</code>, <code>apps_data/bible/devotional.bin</code>, <code>apps_data/bible/rosary.bin</code>, <code>apps_data/bible/confession.bin</code>, <code>apps_data/bible/search_shard_map.bin</code>, and <code>apps_data/bible/search_shards/</code> (with all the shard files inside).</li>
+          <li>Safely eject the SD card (or disconnect the Flipper). Open the Catholic Bible app on the Flipper; all features will use the data you copied.</li>
+        </ol>
+      </div>
+
+      <h3>Bible (read Scripture)</h3>
+      <div class="download-box">
+        <strong>Download (optional – Bible is already in the FAP)</strong>
+        <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/raw/main/files/bible_text.bin">bible_text.bin</a><br>
+        <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/raw/main/files/verse_index.bin">verse_index.bin</a>
+      </div>
+      <p><strong>What you need:</strong> <code>bible_text.bin</code>, <code>verse_index.bin</code>. The FAP already includes the full Bible; you only need these if you want to override with your own build or restore files.</p>
+      <ol style="margin: 0.5rem 0 0 1.25rem; padding-left: 0.5rem;">
+        <li>Download the two files above (or build from source: <code>python3 tools/build_bible_assets.py</code>, then copy from <code>dist/apps_data/bible/</code>).</li>
+        <li>Copy both into <code>apps_data/bible/</code> on the SD card.</li>
+      </ol>
+
+      <h3>Missal (today’s Mass, calendar, prayers, readings)</h3>
+      <div class="download-box">
+        <strong>Download</strong>
+        <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/raw/main/files/missal.bin">missal.bin</a>
+      </div>
+      <p><strong>What you need:</strong> <code>missal.bin</code>. Without it, the Missal menu shows “data not loaded.”</p>
+      <ol style="margin: 0.5rem 0 0 1.25rem; padding-left: 0.5rem;">
+        <li>Download <code>missal.bin</code> from the link above.</li>
+        <li>Copy it into <code>apps_data/bible/</code> on the SD card.</li>
+        <li>Optional: to rebuild from source, edit <code>assets/source/missal.json</code>, run <code>python3 tools/build_missal.py</code>, then copy <code>files/missal.bin</code> to the SD.</li>
+      </ol>
+
+      <h3>Prayers (common prayers list &amp; text)</h3>
+      <div class="download-box">
+        <strong>Download</strong>
+        <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/raw/main/files/devotional.bin">devotional.bin</a>
+      </div>
+      <p><strong>What you need:</strong> <code>devotional.bin</code>. Without it, the Prayers menu shows “(No devotional.bin)”.</p>
+      <ol style="margin: 0.5rem 0 0 1.25rem; padding-left: 0.5rem;">
+        <li>Download <code>devotional.bin</code> from the link above.</li>
+        <li>Copy it into <code>apps_data/bible/</code> on the SD card.</li>
+        <li>Optional: to rebuild, edit <code>assets/source/devotional.json</code>, run <code>python3 tools/build_devotional.py</code>, then copy <code>files/devotional.bin</code> to the SD.</li>
+      </ol>
+
+      <h3>Rosary</h3>
+      <div class="download-box">
+        <strong>Download</strong>
+        <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/raw/main/files/rosary.bin">rosary.bin</a>
+      </div>
+      <p><strong>What you need:</strong> <code>rosary.bin</code> for full Rosary content.</p>
+      <ol style="margin: 0.5rem 0 0 1.25rem; padding-left: 0.5rem;">
+        <li>Download <code>rosary.bin</code> from the link above.</li>
+        <li>Copy it into <code>apps_data/bible/</code> on the SD card.</li>
+      </ol>
+
+      <h3>Confession</h3>
+      <div class="download-box">
+        <strong>Download</strong>
+        <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/raw/main/files/confession.bin">confession.bin</a>
+      </div>
+      <p><strong>What you need:</strong> <code>confession.bin</code> for Confession guide content.</p>
+      <ol style="margin: 0.5rem 0 0 1.25rem; padding-left: 0.5rem;">
+        <li>Download <code>confession.bin</code> from the link above.</li>
+        <li>Copy it into <code>apps_data/bible/</code> on the SD card.</li>
+      </ol>
+
+      <h3>Search (verse search)</h3>
+      <div class="download-box">
+        <strong>Download</strong>
+        <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/raw/main/files/search_shard_map.bin">search_shard_map.bin</a><br>
+        <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/tree/main/files/search_shards">search_shards</a> folder (open folder, download each <code>shard_XXX.bin</code> or clone the repo and copy the folder)
+      </div>
+      <p><strong>What you need:</strong> <code>search_shard_map.bin</code> and the <code>search_shards</code> folder (all <code>shard_001.bin</code>, <code>shard_002.bin</code>, etc.) inside <code>apps_data/bible/</code>.</p>
+      <ol style="margin: 0.5rem 0 0 1.25rem; padding-left: 0.5rem;">
+        <li>Download <code>search_shard_map.bin</code> from the link above.</li>
+        <li>Download the entire <code>search_shards</code> folder from the repo (e.g. clone the repo or use “Download ZIP” and copy the <code>files/search_shards</code> folder).</li>
+        <li>On the SD card, put <code>search_shard_map.bin</code> in <code>apps_data/bible/</code> and put the <code>search_shards</code> folder inside <code>apps_data/bible/</code> so you have <code>apps_data/bible/search_shards/shard_001.bin</code>, etc.</li>
+      </ol>
+
+      <p style="margin-top: 1rem; color: var(--muted); font-size: 0.9rem;">All download links point to the official repo. To build any file from source, clone the repo and see <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/blob/main/README.md">README</a> and <a href="https://github.com/Flipper-Catholic/flipper-catholic-bible/tree/main/tools">tools</a>.</p>
     </div>
 
     <div class="links">
